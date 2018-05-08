@@ -18,12 +18,12 @@
 #' @export
 
 
-pullsg_campaign <- function(surveyid, api, reset_row_names=TRUE, customfields=TRUE, contactinfo=TRUE, small=FALSE, verbose=TRUE){
+pullsg_campaign <- function(surveyid, api, secret, reset_row_names=TRUE, customfields=TRUE, contactinfo=TRUE, small=FALSE, verbose=TRUE){
 
 	options(stringsAsFactors=F)
 
 	# Set hard-coded URL parameters
-	token <- paste0('?api_token=', api) # Must be in the first trailing URL position
+	token <- paste0('?api_token=', api, '&api_token_secret=', secret) # Must be in the first trailing URL position
 	url      <- 'https://restapi.surveygizmo.com/v4/survey/'
 	camp <- "/surveycampaign/"
 	cont <- "/contact/"

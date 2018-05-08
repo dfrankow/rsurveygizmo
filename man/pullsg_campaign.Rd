@@ -4,8 +4,9 @@
 \alias{pullsg_campaign}
 \title{Download survey campaign data from Survey Gizmo, storing an R dataframe.}
 \usage{
-pullsg_campaign(surveyid, api, reset_row_names = TRUE, customfields = TRUE,
-  contactinfo = TRUE, small = FALSE, verbose = TRUE)
+pullsg_campaign(surveyid, api, secret, reset_row_names = TRUE,
+  customfields = TRUE, contactinfo = TRUE, small = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{surveyid}{The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"}
@@ -29,4 +30,3 @@ the returned email/response data as an R \code{\link{data.frame}}. Because SG li
 it calculates the number of pulls needed to download the entire response set and binds the returned frames. The "contactid" field joins email address and other campaign data with the survey response objects (see \code{\link{pullsg}}).
 Note that this function only downloads contact object data that is accessible through the API, specifically, contact objects associated with the subtype "email" where status is "Active."
 }
-

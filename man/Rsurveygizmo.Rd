@@ -17,4 +17,3 @@ The two functions currently provided by \pkg{Rsurveygizmo} are
 variety of parameters to control the types of columns included within the returned object. \code{\link{pullsg}} optionally
 downloads campaign data (email addresses, etc.) as part of its execution using the \code{\link{pullsg_campaign}} function, merging the returned sets.
 }
-

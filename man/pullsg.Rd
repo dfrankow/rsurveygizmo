@@ -4,7 +4,7 @@
 \alias{pullsg}
 \title{Download survey response data from Survey Gizmo, storing an R dataframe.}
 \usage{
-pullsg(surveyid, api, completes_only = TRUE, verbose = TRUE,
+pullsg(surveyid, api, secret, completes_only = TRUE, verbose = TRUE,
   var_name_append = TRUE, mergecampaign = FALSE, delete_sys_vars = FALSE,
   keep_geo_vars = TRUE, clean = FALSE, reset_row_names = TRUE,
   small = FALSE)
@@ -61,4 +61,3 @@ it calculates the number of pulls needed to download the entire response set and
 To ensure that variable names are interpretable in the returned data frame, it is strongly recommended
 that users first assign question \href{https://help.surveygizmo.com/help/article/link/using-question-aliases}{aliases} to each question prior to utilizing this function.
 }
-
