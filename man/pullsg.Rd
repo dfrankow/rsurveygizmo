@@ -4,15 +4,19 @@
 \alias{pullsg}
 \title{Download survey response data from Survey Gizmo, storing an R dataframe.}
 \usage{
-pullsg(surveyid, api, secret, completes_only = TRUE, verbose = TRUE,
-  var_name_append = TRUE, mergecampaign = FALSE, delete_sys_vars = FALSE,
-  keep_geo_vars = TRUE, clean = FALSE, reset_row_names = TRUE,
-  small = FALSE)
+pullsg(surveyid, api, secret, locale = "US", completes_only = TRUE,
+  verbose = TRUE, var_name_append = TRUE, mergecampaign = FALSE,
+  delete_sys_vars = FALSE, keep_geo_vars = TRUE, clean = FALSE,
+  reset_row_names = TRUE, small = FALSE)
 }
 \arguments{
 \item{surveyid}{The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"}
 
 \item{api}{The user's private API key for Survey Gizmo}
+
+\item{secret}{The user's private secret for Survey Gizmo}
+
+\item{locale}{The user's Survey Gizmo domain. Can be US (default), EU or CA.}
 
 \item{completes_only}{When true (the Default), survey responses with a status of
 "Complete" are saved. Responses with a status of "disqualified", "partial", etc.

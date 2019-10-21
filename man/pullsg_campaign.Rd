@@ -4,14 +4,18 @@
 \alias{pullsg_campaign}
 \title{Download survey campaign data from Survey Gizmo, storing an R dataframe.}
 \usage{
-pullsg_campaign(surveyid, api, secret, reset_row_names = TRUE,
-  customfields = TRUE, contactinfo = TRUE, small = FALSE,
-  verbose = TRUE)
+pullsg_campaign(surveyid, api, secret, locale = "US",
+  reset_row_names = TRUE, customfields = TRUE, contactinfo = TRUE,
+  small = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{surveyid}{The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"}
 
 \item{api}{The user's private API key for Survey Gizmo}
+
+\item{secret}{The user's private API secret for Survey Gizmo}
+
+\item{locale}{The user's Survey Gizmo domain. Can be US (default), EU or CA.}
 
 \item{reset_row_names}{When true (the default), resets row names to 1, 2,..N in the returned dataframe}
 
