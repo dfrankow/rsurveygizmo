@@ -9,6 +9,7 @@
 #' @param surveyid The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"
 #' @param api The user's private API key for Survey Gizmo
 #' @param secret The user's private secret for Survey Gizmo
+#' @param locale The user's Survey Gizmo domain. Can be US (default), EU or CA.
 #' @param verbose When true (the default), download progress is printed to standard output.
 #' @param mergecampaign When true, contact emails are downloaded from the SG "contact" object and merged with the survey responses. Note: this parameter should \emph{only} be used with survey projects that have an active email campaign.
 #' @param small Only merge email address when mergecampaign is true.
@@ -45,13 +46,23 @@
 #' @export
 
 
-pullsg <- function(surveyid, api, secret, completes_only=TRUE, verbose=TRUE, var_name_append=TRUE, mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE, clean=FALSE, reset_row_names=TRUE, small=FALSE) {
+pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE, var_name_append=TRUE, mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE, clean=FALSE, reset_row_names=TRUE, small=FALSE) {
 
 	options(stringsAsFactors=FALSE)
 	if(small & mergecampaign==FALSE) warning('\nThe "small" parameter should be false when "mergecampaign" is false. This parameter was ignored.')
 	# Set hard-coded URL parameters
 	token <- paste0('?api_token=', api, '&api_token_secret=', secret) # Must be in the first trailing URL position
-	url      <- 'https://restapi.surveygizmo.com/v4/survey/'
+
+	if (locale == "US") {
+		url <- "https://restapi.surveygizmo.com/v4/survey/"
+	} else if (locale == "EU") {
+		url <- "https://restapi.surveygizmo.eu/v4/survey/"
+	} else if (locale == "CA") {
+		url <- "https://restapica.surveygizmo.com/v4/survey/"
+	} else {
+		stop("Locale not known. Please use one of US, EU or CA")
+	}
+
 	response <- "/surveyresponse/"
 	question <- "/surveyquestion/"
 	pages    <- "&page="
@@ -196,7 +207,7 @@ pullsg <- function(surveyid, api, secret, completes_only=TRUE, verbose=TRUE, var
 
 	# Format Survey Gizmo date fields
 	set[, c('datestarted', 'datesubmitted')] <- lapply(set[, c('datestarted', 'datesubmitted')],
-														   as.POSIXct, format="%Y-%m-%d")
+														   as.POSIXct, format="%Y-%m-%d %H:%M")
 
 	# Merge data from the contact object with survey returns
 	if(mergecampaign) {
