@@ -7,6 +7,8 @@
 #'
 #' @param surveyid The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"
 #' @param api The user's private API key for Survey Gizmo
+#' @param secret The user's private API secret for Survey Gizmo
+#' @param locale The user's Survey Gizmo domain. Can be US (default), EU or CA.
 #' @param verbose When true (the default), download progress is printed to standard output.
 #' \strong{NOTE:} When set to false, pullsg will change the stub of SG system variables to \emph{sys_*}
 #' @param reset_row_names When true (the default), resets row names to 1, 2,..N in the returned dataframe
@@ -18,13 +20,21 @@
 #' @export
 
 
-pullsg_campaign <- function(surveyid, api, secret, reset_row_names=TRUE, customfields=TRUE, contactinfo=TRUE, small=FALSE, verbose=TRUE){
+pullsg_campaign <- function(surveyid, api, secret, locale='US', reset_row_names=TRUE, customfields=TRUE, contactinfo=TRUE, small=FALSE, verbose=TRUE){
 
 	options(stringsAsFactors=F)
 
 	# Set hard-coded URL parameters
 	token <- paste0('?api_token=', api, '&api_token_secret=', secret) # Must be in the first trailing URL position
-	url      <- 'https://restapi.surveygizmo.com/v4/survey/'
+	if (locale == "US") {
+		url <- "https://restapi.surveygizmo.com/v4/survey/"
+	} else if (locale == "EU") {
+		url <- "https://restapi.surveygizmo.eu/v4/survey/"
+	} else if (locale == "CA") {
+		url <- "https://restapica.surveygizmo.com/v4/survey/"
+	} else {
+		stop("Locale not known. Please use one of US, EU or CA")
+	}
 	camp <- "/surveycampaign/"
 	cont <- "/contact/"
 

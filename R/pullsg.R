@@ -211,7 +211,7 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 
 	# Merge data from the contact object with survey returns
 	if(mergecampaign) {
-		campaign <- Rsurveygizmo::pullsg_campaign(surveyid, api, small=small)
+		campaign <- Rsurveygizmo::pullsg_campaign(surveyid, api, secret, locale=locale, small=small)
 		if(sum(duplicated(campaign$contactid))){
 			message("Campaign data for survey id# ", surveyid, " contains duplicate contactid records.")
 			message("The most recent record will be selected and merged with the survey data. \nHowever, we strongly, ",
