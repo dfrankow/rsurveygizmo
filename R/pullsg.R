@@ -8,6 +8,7 @@
 #'
 #' @param surveyid The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"
 #' @param api The user's private API key for Survey Gizmo
+#' @param secret The user's private secret for Survey Gizmo
 #' @param verbose When true (the default), download progress is printed to standard output.
 #' @param mergecampaign When true, contact emails are downloaded from the SG "contact" object and merged with the survey responses. Note: this parameter should \emph{only} be used with survey projects that have an active email campaign.
 #' @param small Only merge email address when mergecampaign is true.
