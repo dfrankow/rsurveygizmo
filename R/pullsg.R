@@ -34,7 +34,12 @@
 #'   \item \emph{rsp_post}
 #'   }
 #' @param reset_row_names When true (the default), resets row names to 1, 2,..N in the returned dataframe
-#' @param var_name_append When true (the default), appends the stub "_ID[question_numer] to questions \emph{without} an alias to avoid variable name conflicts.
+#' @param default_var_name_policy Variable name for those without an alias.
+#'  "id" uses only variable names,
+#'  "title" uses some of the question title,
+#'  "title_plus_id" uses some of the title and
+#'  appends the stub "_ID[question_numer] to questions \emph{without} an alias
+#'  to avoid variable name conflicts.
 #' @param clean This option performs three transformations to the returned data.frame:
 #' \enumerate{
 #'   \item attempts to coerce vectors to numeric if all values are numbers or "" (uses \code{\link{type.convert}})
@@ -46,7 +51,12 @@
 #' @export
 
 
-pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE, var_name_append=TRUE, mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE, clean=FALSE, reset_row_names=TRUE, small=FALSE) {
+pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE,
+				   default_var_name_policy=c("id", "title", "title_plus_id"),
+				   mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE,
+				   clean=FALSE, reset_row_names=TRUE, small=FALSE) {
+	browser()
+	default_var_name_policy <- match.arg(default_var_name_policy)
 
 	options(stringsAsFactors=FALSE)
 	if(small & mergecampaign==FALSE) warning('\nThe "small" parameter should be false when "mergecampaign" is false. This parameter was ignored.')
@@ -94,33 +104,9 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	lc_respnum  <- ceiling(lc_resp_cnt/100)
 
 	# Retrieve the question list from the "/surveyquestion/" call
-	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
 	setTxtProgressBar(progb, 3)
-
-	lc_qs   <- as.data.frame(lc_qs$data)
-
-	# Extract question text for questions without a defined SG alias, stripping
-	# html tags, punctuation, and spaces, keeping the first 35 characters and
-	# appending the question id.
-	lc_qs$qtext <- gsub("<.*?>", "", lc_qs$title$English)
-	lc_qs$qtext <- gsub("[[:punct:]]", "", lc_qs$qtext)
-	setTxtProgressBar(progb, 4)
-
-	if(var_name_append) {
-		lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 35),
-						  "_ID", lc_qs$id)
-		lc_qs$qtext <- trimws(lc_qs$qtext)
-	} else {
-		lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 75))
-		lc_qs$qtext <- trimws(lc_qs$qtext)
-	}
-
-	lc_qs$shortname <- ifelse(is.na(lc_qs$shortname) | lc_qs$shortname=="",
-							  lc_qs$qtext, lc_qs$shortname)
+	lc_qs <- get_questions(lc_qurl, default_var_name_policy)
 	close(progb)
-
-	# Drop instructional messages and subset the frame, keeping shortname and id.
-	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
 
 	# Retrieve the response data with the "/surveyresponse/" call
 	message(paste0("\n  Retrieving survey response data (", lc_respnum, " pages):"))
@@ -231,6 +217,38 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	return(set)
 }
 
+#' Fetch the question information, and make up variable names.
+#'
+#' Returns a data frame with id and shortname.
+get_questions <- function(lc_qurl, default_var_name_policy) {
+	# Retrieve the question list from the "/surveyquestion/" call
+	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
 
+	lc_qs   <- as.data.frame(lc_qs$data)
 
+	if (default_var_name_policy == "id") {
+		lc_qs$qtext <- paste0("var", lc_qs$id)
+	} else {
+		# Extract question text for questions without a defined SG alias, stripping
+		# html tags, punctuation, and spaces, keeping the first 35 characters and
+		# appending the question id.
+		lc_qs$qtext <- gsub("<.*?>", "", lc_qs$title$English)
+		lc_qs$qtext <- gsub("[[:punct:]]", "", lc_qs$qtext)
+		setTxtProgressBar(progb, 4)
 
+		if(default_var_name_policy == "title_plus_id") {
+			lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 35),
+								  "_ID", lc_qs$id)
+		} else {
+			stopifnot(default_var_name_policy == "title")
+			lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 75))
+		}
+		lc_qs$qtext <- trimws(lc_qs$qtext)
+	}
+
+	lc_qs$shortname <- ifelse(is.na(lc_qs$shortname) | lc_qs$shortname=="",
+							  lc_qs$qtext, lc_qs$shortname)
+
+	# Drop instructional messages and subset the frame, keeping shortname and id.
+	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
+}
