@@ -123,9 +123,10 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
 
 	# Retrieve the response data with the "/surveyresponse/" call
-	message("\n  Retrieving survey response data:")
-	progb <- txtProgressBar(min = 0, max = length(lc_respnum), style = 3)
+	message(paste0("\n  Retrieving survey response data (", lc_respnum, " pages):"))
+	progb <- txtProgressBar(min = 0, max = lc_respnum, style = 3)
 	for(i in 1:lc_respnum){
+		# message(paste0("Fetch page ", i))
 		sg_return_url  <- paste0(lc_furl, i)
 		sg_return_data <- fromJSON(txt=sg_return_url)
 		sg_return_data <- as.data.frame(sg_return_data$data)
