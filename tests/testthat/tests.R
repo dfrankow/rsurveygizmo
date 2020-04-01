@@ -88,3 +88,162 @@ test_that("Test get_sub_questions", {
 				 	row.names = c(NA,-9L)
 				 ))
 })
+
+test_that("Test get_question_options", {
+	test_qs <-
+		structure(
+			list(
+				id = c(52L, 185L, 211L),
+				`_type` = c("SurveyAction", "SurveyQuestion", "SurveyQuestion"),
+				`_subtype` = c("javascript", "radio", "table"),
+				title = structure(
+					list(
+						English = c(
+							"title1 to ignore",
+							"please select one",
+							"How would you rate?"
+						)
+					),
+					row.names = c(1L, 12L, 14L),
+					class = "data.frame"
+				),
+				shortname = c(NA, "most_important", "pre"),
+				varname = list(
+					list(),
+					"most_important",
+					list(
+						`329` = "pre.word1",
+						`355` = "pre.word2",
+						`215` = "pre.word3"
+					)
+				),
+				description = list(list(), list(), list()),
+				properties = structure(
+					list(
+						hidden = c(FALSE, FALSE, FALSE),
+						disabled = c(FALSE, FALSE, FALSE),
+						option_sort = c(NA, FALSE, FALSE),
+						subtype = c(NA_character_,
+									NA_character_, NA_character_)
+					),
+					row.names = c(1L, 12L, 14L),
+					class = "data.frame"
+				),
+				options = list(
+					structure(
+						list(),
+						.Names = character(0),
+						row.names = integer(0),
+						class = "data.frame"
+					),
+					structure(
+						list(
+							id = c(
+								10348L,
+								10357L,
+								10358L
+							),
+							`_type` = c(
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption"
+							),
+							title = structure(
+								list(
+									English = c(
+										"blue1",
+										"blue2",
+										"blue3"
+									)
+								),
+								class = "data.frame",
+								row.names = c(NA, 3L)
+							),
+							value = c(
+								"vblue1",
+								"vblue2",
+								"vblue3"
+							),
+							properties = structure(
+								list(
+									disabled = c(FALSE, FALSE, TRUE)
+								),
+								class = "data.frame",
+								row.names = c(NA, 3L)
+							)
+						),
+						class = "data.frame",
+						row.names = c(NA, 3L)
+					),
+					structure(
+						list(
+							id = 10417:10421,
+							`_type` = c(
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption"
+							),
+							title = structure(
+								list(
+									English = c(
+										"Strongly approve",
+										"Somewhat approve",
+										"Don't know",
+										"Somewhat disapprove",
+										"Strongly disapprove"
+									)
+								),
+								class = "data.frame",
+								row.names = c(NA, 5L)
+							),
+							value = c(
+								"vStrongly approve",
+								"vSomewhat approve",
+								"vDon't know",
+								"vSomewhat disapprove",
+								"vStrongly disapprove"
+							),
+							properties = structure(
+								list(disabled = c(FALSE, FALSE, FALSE, FALSE, FALSE)),
+								class = "data.frame",
+								row.names = c(NA, 5L)
+							)
+						),
+						class = "data.frame",
+						row.names = c(NA, 5L)
+					)
+				),
+				sub_question_skus = list(
+					NULL,
+					NULL,
+					list(
+						`0` = 329L,
+						`1` = 355L,
+						aa = 215L
+					)
+				)
+			),
+			row.names = c(1L, 12L, 14L), class = "data.frame")
+	opts <- get_question_options(test_qs)
+	expect_equal(
+		opts,
+		data.frame(
+			option_id = c(10348L, 10357L, 10358L, 10417L,
+						  10418L, 10419L, 10420L, 10421L),
+			title = c("blue1", "blue2", "blue3", "Strongly approve",
+					  "Somewhat approve", "Don't know",
+					  "Somewhat disapprove", "Strongly disapprove"),
+			title_language = c("English", "English", "English", "English",
+							   "English", "English", "English", "English"),
+			value = c("vblue1", "vblue2", "vblue3", "vStrongly approve",
+					  "vSomewhat approve", "vDon't know", "vSomewhat disapprove",
+					  "vStrongly disapprove"),
+			order = c(1L, 2L, 3L, 1L, 2L, 3L, 4L, 5L),
+			question_id = c(185L, 185L, 185L, 211L, 211L, 211L, 211L, 211L),
+			question_subtype = c("radio", "radio", "radio", "table",
+								 "table", "table", "table", "table")
+		)
+	)
+})

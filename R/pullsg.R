@@ -270,13 +270,15 @@ get_questions <- function(lc_qurl, default_var_name_policy) {
 #' sub_varname comes from from SPSS variable name, if any.
 get_sub_questions <- function(lc_qs) {
 	df <- lc_qs[,c('id', 'sub_question_skus', 'varname')]
+	# get only rows with 'sub_question_skus' not NULL
 	df$sub_question_skus <- replace(
 		df$sub_question_skus,
 		sapply(df$sub_question_skus, is.null), NA)
 	df <- df[!is.na(df$sub_question_skus),]
+	# make varname NA for rows with 'varname' NULL or list()
 	df$varname <- replace(
 		df$varname,
-		sapply(df$varname, function(x) { is.null(x) | length(x) ==0 }), NA)
+		sapply(df$varname, function(x) { is.null(x) | length(x) == 0 }), NA)
 	df2 <- as.data.frame(do.call(
 		rbind,
 		Map(f=cbind,
@@ -285,5 +287,61 @@ get_sub_questions <- function(lc_qs) {
 			varname=df$varname)),
 		row.names = FALSE)
 	colnames(df2) <- c('parent_id', 'sub_question_id', 'sub_varname')
-	df2
+	# Make this a simple data frame, with no lists, no named columns
+	df2 <- sapply(df2, function(col) unlist(unname(col)))
+}
+
+#' Get all the options for all questions with options (e.g., radio, table, checkbox).
+#'
+#' Return a data frame with option_id, option_type, title, title_language, value, order,
+#' question_id, question_type, question_subtype.
+get_question_options <- function(question_df) {
+	df <- question_df[,c('id', '_type', '_subtype', 'options', 'properties')]
+	# get only rows with 'options' != list()
+	df$options <- replace(
+		df$options,
+		sapply(df$options, function(x) { is.null(x) | length(x) == 0 }), NA)
+	df <- df[!is.na(df$options),]
+	# Expect only SurveyQuestion:
+	stopifnot(unique(df$`_type`) == c('SurveyQuestion'))
+
+	# not dealing with properties right now, so let's assume they're not set
+	stopifnot(sum(df$properties$hidden)==0)
+	stopifnot(sum(df$properties$option_sort)==0)
+
+	result <- data.frame()
+	for (idx in 1:nrow(df)) {
+		# the 'options' column of df is a list with 1 element.  Unlist it.
+		the_options <- df[idx,c('options')][[1]]
+		# remove row names so they don't collide with each other
+		rownames(the_options) <- c()
+		# throw away disabled options
+		if ('disabled' %in% names(the_options)) {
+			the_options <- the_options[!the_options$disabled,]
+		}
+		if (is.data.frame(the_options$title)) {
+			# this is a data frame with one column, the title
+			# for example, the one column may be "English"
+			# so the column name may be the language?
+			# so this may become more complicated if there are multiple languages?
+			stopifnot(ncol(the_options$title) == 1)
+			# keep the language info
+			the_options$title_language <- colnames(the_options$title)
+			# make it a plain column
+			the_options$title <- the_options$title[[1]]
+		}
+		# just be triple sure and preserve the order instead of
+		# relying on the option id
+		the_options$order <- seq(1,length(the_options$title))
+		the_options <- the_options[
+			,c('id', 'title', 'title_language', 'value', 'order')]
+		# rename column
+		names(the_options)[1] <- 'option_id'
+
+		the_options$question_id <- df[idx,c('id')]
+		the_options$question_subtype <- df[idx,c('_subtype')]
+
+		result <- rbind(result, the_options)
+	}
+	result
 }
