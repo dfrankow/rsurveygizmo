@@ -55,7 +55,6 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 				   default_var_name_policy=c("id", "title", "title_plus_id"),
 				   mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE,
 				   clean=FALSE, reset_row_names=TRUE, small=FALSE) {
-	browser()
 	default_var_name_policy <- match.arg(default_var_name_policy)
 
 	options(stringsAsFactors=FALSE)
@@ -246,9 +245,41 @@ get_questions <- function(lc_qurl, default_var_name_policy) {
 		lc_qs$qtext <- trimws(lc_qs$qtext)
 	}
 
-	lc_qs$shortname <- ifelse(is.na(lc_qs$shortname) | lc_qs$shortname=="",
-							  lc_qs$qtext, lc_qs$shortname)
+	sub_ques <- get_sub_questions(lc_qs)
+	lc_qs <- merge(lc_qs, sub_ques[,c('sub_question_id', 'sub_varname')],
+				   by.x="id", by.y="sub_question_id",
+				   all.x=TRUE)
+
+	# shortname, then sub_varname, then qtext
+	# TODO(dan): Any other names we can use for sub vars?
+	lc_qs$shortname <- ifelse(
+		!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
+		lc_qs$shortname,
+		ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname, lc_qs$qtext))
 
 	# Drop instructional messages and subset the frame, keeping shortname and id.
 	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
+}
+
+#' Return a data frame with parent_id, sub_question_id, and sub_varname
+#'
+#' sub_varname comes from from SPSS variable name, if any.
+get_sub_questions <- function(lc_qs) {
+	df <- lc_qs[,c('id', 'sub_question_skus', 'varname')]
+	df$sub_question_skus <- replace(
+		df$sub_question_skus,
+		sapply(df$sub_question_skus, is.null), NA)
+	df <- df[!is.na(df$sub_question_skus),]
+	df$varname <- replace(
+		df$varname,
+		sapply(df$varname, function(x) { is.null(x) | length(x) ==0 }), NA)
+	df2 <- as.data.frame(do.call(
+		rbind,
+		Map(f=cbind,
+			id=df$id,
+			sub_question_id=df$sub_question_skus,
+			varname=df$varname)),
+		row.names = FALSE)
+	colnames(df2) <- c('parent_id', 'sub_question_id', 'sub_varname')
+	df2
 }
