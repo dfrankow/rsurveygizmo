@@ -105,14 +105,14 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 
 	# Retrieve the question list from the "/surveyquestion/" call
 	setTxtProgressBar(progb, 3)
-	lc_qs <- get_questions(lc_qurl, default_var_name_policy)
+	# get id and qtext of questions
+	lc_qs <- get_questions(lc_qurl, default_var_name_policy)[,c('id', 'qtext')]
 	close(progb)
 
 	# Retrieve the response data with the "/surveyresponse/" call
 	message(paste0("\n  Retrieving survey response data (", lc_respnum, " pages):"))
 	progb <- txtProgressBar(min = 0, max = lc_respnum, style = 3)
 	for(i in 1:lc_respnum){
-		# message(paste0("Fetch page ", i))
 		sg_return_url  <- paste0(lc_furl, i)
 		sg_return_data <- fromJSON(txt=sg_return_url)
 		sg_return_data <- as.data.frame(sg_return_data$data)
@@ -168,9 +168,9 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	lc_names <- lc_names[order(lc_names$index),]
 	rownames(lc_names) <- NULL # reset the row.names attribute
 
-	# Replace variable name with shortname wher available
-	lc_names$id   <- ifelse(is.na(lc_names$shortname),
-							lc_names$id, lc_names$shortname)
+	# Replace variable name with qtext where available
+	lc_names$id   <- ifelse(is.na(lc_names$qtext),
+							lc_names$id, lc_names$qtext)
 
 	# Subset the vector of cleaned names and replace the full_set names
 	lc_names <- lc_names[,'id']
@@ -217,9 +217,12 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	return(set)
 }
 
-#' Fetch the question information, and make up variable names.
+#' Fetch the question information, and make up variable names in the qtext column.
 #'
-#' Returns a data frame with id and shortname.
+#' qtext (question name) is whichever is non-NA from shortname, sub_varname,
+#' and the title made up from default_var_name_policy.
+#'
+#' Returns a data frame with all columns.
 get_questions <- function(lc_qurl, default_var_name_policy) {
 	# Retrieve the question list from the "/surveyquestion/" call
 	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
@@ -253,13 +256,13 @@ get_questions <- function(lc_qurl, default_var_name_policy) {
 
 	# shortname, then sub_varname, then qtext
 	# TODO(dan): Any other names we can use for sub vars?
-	lc_qs$shortname <- ifelse(
+	lc_qs$qtext <- ifelse(
 		!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
 		lc_qs$shortname,
 		ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname, lc_qs$qtext))
 
-	# Drop instructional messages and subset the frame, keeping shortname and id.
-	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
+	# Drop instructional messages.
+	lc_qs[lc_qs$`_type` !="SurveyDecorative",]
 }
 
 #' Return a data frame with parent_id, sub_question_id, and sub_varname
