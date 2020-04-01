@@ -5,6 +5,7 @@
 #' it calculates the number of pulls needed to download the entire response set and binds the returned frames.
 #' To ensure that variable names are interpretable in the returned data frame, it is strongly recommended
 #' that users first assign question \href{https://help.surveygizmo.com/help/article/link/using-question-aliases}{aliases} to each question prior to utilizing this function.
+#' For sub-questions (e.g., a radio button grid), assign SPSS variable names.
 #'
 #' @param surveyid The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"
 #' @param api The user's private API key for Survey Gizmo
