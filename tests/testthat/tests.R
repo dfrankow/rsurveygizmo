@@ -247,3 +247,96 @@ test_that("Test get_question_options", {
 		)
 	)
 })
+
+
+test_that("Test get_question_options disabled", {
+	test_qs <-
+		structure(
+			list(
+				id = 185L,
+				`_type` = "SurveyQuestion",
+				`_subtype` = "radio",
+				title = structure(
+					list(English = "please select one"),
+					row.names = 12L,
+					class = "data.frame"
+				),
+				shortname = "most_important",
+				varname = list("most_important"),
+				description = list(list()),
+				has_showhide_deps = FALSE,
+				comment = FALSE,
+				properties = structure(
+					list(
+						disabled = FALSE,
+						option_sort = FALSE,
+						subtype = NA_character_
+					),
+					row.names = 3L,
+					class = "data.frame"
+				),
+				options = list(structure(
+					list(
+						id = c(
+							10348L,
+							10358L,
+							10719L
+						),
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"val1",
+									"val3",
+									"val3"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 3L)
+						),
+						value = c(
+							"val1",
+							"val3",
+							"val3"
+						),
+						properties = structure(
+							list(
+								disabled = c(FALSE, TRUE, FALSE)
+							),
+							class = "data.frame",
+							row.names = c(NA, 3L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 3L)
+				)),
+				sub_question_skus = list(							  									 									  																						   								 										 											 													  										   																	NULL)), row.names = 12L, class = "data.frame")
+	opts <- get_question_options(test_qs)
+	expect_equal(nrow(opts), 2)
+	# option 10358 disappeared because it was disabled
+	expect_equal(opts$option_id, c(10348, 10719))
+
+	expected_df <- data.frame(option_id = c(10348L, 10719L),
+							  title = c("val1", "val3"),
+							  title_language = c("English", "English"),
+							  value = c("val1", "val3"),
+							  order = 1:2,
+							  question_id = c(185L, 185L),
+							  question_subtype = c("radio", "radio"))
+
+	# Compare data frames element-wise because the rownames are somehow different.
+	# TODO(dan): expect_equal(opts, expected_df)
+	# TODO(dan): Make default, plain rownames.
+	# rownames(expected_df) <- c("1", "3")
+	expect_true(all(opts == expected_df))
+})
+
+# TODO(dan): Test behavior when a question has both a shortname and varname (SPSS var name).
+#            Right now, I think it will take shortname first.
+# TODO(dan): Test behavior when a sub-question has both a shortname and varname (SPSS var name)
+#            from its parent question.
+#            Right now, I think it will take shortname first.
