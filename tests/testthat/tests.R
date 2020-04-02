@@ -1,4 +1,4 @@
-library("Rsurveygizmo")
+#library("Rsurveygizmo")
 
 context("Sub-questions")
 

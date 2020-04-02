@@ -3,7 +3,6 @@
 \docType{package}
 \name{Rsurveygizmo}
 \alias{Rsurveygizmo}
-\alias{Rsurveygizmo-package}
 \title{Rsurveygizmo: A package for downloading survey and campaign data from Survey Gizmo.}
 \description{
 \pkg{Rsurveygizmo} allows you to access the Survey Gizmo (SG) REST API

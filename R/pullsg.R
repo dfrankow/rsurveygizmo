@@ -50,6 +50,7 @@
 #' @param pages  Fetch these pages of survey responses (given by a sequence).  If NULL, fetch them all.
 
 #' @importFrom jsonlite fromJSON
+#' @importFrom utils txtProgressBar setTxtProgressBar type.convert
 #' @export
 
 
@@ -112,6 +113,7 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	setTxtProgressBar(progb, 3)
 	# get id and qtext of questions
 	lc_qs <- get_questions(lc_qurl, default_var_name_policy)[,c('id', 'qtext')]
+	setTxtProgressBar(progb, 4)
 	close(progb)
 
 	# Retrieve the response data with the "/surveyresponse/" call
@@ -230,6 +232,9 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 #'
 #' Returns a data frame with all columns.
 #'
+#' @param lc_qurl  URL whence to fetch question json
+#' @param default_var_name_policy  See pullsg
+#'
 #' @export
 get_questions <- function(lc_qurl, default_var_name_policy) {
 	# Retrieve the question list from the "/surveyquestion/" call
@@ -245,7 +250,6 @@ get_questions <- function(lc_qurl, default_var_name_policy) {
 		# appending the question id.
 		lc_qs$qtext <- gsub("<.*?>", "", lc_qs$title$English)
 		lc_qs$qtext <- gsub("[[:punct:]]", "", lc_qs$qtext)
-		setTxtProgressBar(progb, 4)
 
 		if(default_var_name_policy == "title_plus_id") {
 			lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 35),
@@ -276,6 +280,8 @@ get_questions <- function(lc_qurl, default_var_name_policy) {
 #' Return a data frame with parent_id, sub_question_id, and sub_varname
 #'
 #' sub_varname comes from from SPSS variable name, if any.
+#'
+#' @param  lc_qs  Return value from get_questions
 get_sub_questions <- function(lc_qs) {
 	df <- lc_qs[,c('id', 'sub_question_skus', 'varname')]
 	# get only rows with 'sub_question_skus' not NULL
@@ -307,6 +313,10 @@ get_sub_questions <- function(lc_qs) {
 #'
 #' Return a data frame with option_id, option_type, title, title_language, value, order,
 #' question_id, question_type, question_subtype, question_qtext.
+#'
+#' @param question_df  Return value of get_questions
+#'
+#' @export
 get_question_options <- function(question_df) {
 	df <- question_df[,c('id', '_type', '_subtype', 'options', 'properties', 'qtext')]
 	# get only rows with 'options' != list()
@@ -387,6 +397,8 @@ apply_order_to_vector <- function(vec, levels, colname="unknown", extra_levels=N
 }
 
 #' Return elements of vec that have duplicates
+#'
+#' @param vec  Vector in which to detect duplicates
 dup_elements <- function(vec) {
 	ret <- table(vec)
 	ret[ret > 1]
