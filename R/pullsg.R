@@ -296,7 +296,9 @@ get_sub_questions <- function(lc_qs) {
 		row.names = FALSE)
 	colnames(df2) <- c('parent_id', 'sub_question_id', 'sub_varname')
 	# Make this a simple data frame, with no lists, no named columns
-	df2 <- sapply(df2, function(col) unlist(unname(col)))
+	# But, it makes all the columns of type "chr", so that's not great.
+	#df2 <- sapply(df2, function(col) unlist(unname(col)))
+	df2
 }
 
 #' Get all the options for all questions with options (e.g., radio, table, checkbox).
@@ -304,9 +306,9 @@ get_sub_questions <- function(lc_qs) {
 #' Removes disabled options (question_df$options$properties$disabled FALSE).
 #'
 #' Return a data frame with option_id, option_type, title, title_language, value, order,
-#' question_id, question_type, question_subtype.
+#' question_id, question_type, question_subtype, question_qtext.
 get_question_options <- function(question_df) {
-	df <- question_df[,c('id', '_type', '_subtype', 'options', 'properties')]
+	df <- question_df[,c('id', '_type', '_subtype', 'options', 'properties', 'qtext')]
 	# get only rows with 'options' != list()
 	df$options <- replace(
 		df$options,
@@ -351,6 +353,7 @@ get_question_options <- function(question_df) {
 
 		the_options$question_id <- df[idx,c('id')]
 		the_options$question_subtype <- df[idx,c('_subtype')]
+		the_options$question_qtext <- df[idx,c('qtext')]
 
 		result <- rbind(result, the_options)
 	}

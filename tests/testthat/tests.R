@@ -96,6 +96,7 @@ test_that("Test get_question_options", {
 				id = c(52L, 185L, 211L),
 				`_type` = c("SurveyAction", "SurveyQuestion", "SurveyQuestion"),
 				`_subtype` = c("javascript", "radio", "table"),
+				qtext = c("var22", "var33", "var44"),
 				title = structure(
 					list(
 						English = c(
@@ -227,23 +228,26 @@ test_that("Test get_question_options", {
 			),
 			row.names = c(1L, 12L, 14L), class = "data.frame")
 	opts <- get_question_options(test_qs)
+	# note: blue3 is disabled, so it won't be there
 	expect_equal(
 		opts,
 		data.frame(
-			option_id = c(10348L, 10357L, 10358L, 10417L,
+			option_id = c(10348L, 10357L, 10417L,
 						  10418L, 10419L, 10420L, 10421L),
-			title = c("blue1", "blue2", "blue3", "Strongly approve",
+			title = c("blue1", "blue2", "Strongly approve",
 					  "Somewhat approve", "Don't know",
 					  "Somewhat disapprove", "Strongly disapprove"),
-			title_language = c("English", "English", "English", "English",
+			title_language = c("English", "English","English",
 							   "English", "English", "English", "English"),
-			value = c("vblue1", "vblue2", "vblue3", "vStrongly approve",
+			value = c("vblue1", "vblue2", "vStrongly approve",
 					  "vSomewhat approve", "vDon't know", "vSomewhat disapprove",
 					  "vStrongly disapprove"),
-			order = c(1L, 2L, 3L, 1L, 2L, 3L, 4L, 5L),
-			question_id = c(185L, 185L, 185L, 211L, 211L, 211L, 211L, 211L),
-			question_subtype = c("radio", "radio", "radio", "table",
-								 "table", "table", "table", "table")
+			order = c(1L, 2L, 1L, 2L, 3L, 4L, 5L),
+			question_id = c(185L, 185L, 211L, 211L, 211L, 211L, 211L),
+			question_subtype = c("radio", "radio", "table",
+								 "table", "table", "table", "table"),
+			question_qtext = c("var33", "var33", "var44", "var44",
+							   "var44", "var44", "var44")
 		)
 	)
 })
@@ -254,6 +258,7 @@ test_that("Test get_question_options disabled", {
 		structure(
 			list(
 				id = 185L,
+				qtext = "var66",
 				`_type` = "SurveyQuestion",
 				`_subtype` = "radio",
 				title = structure(
@@ -326,7 +331,8 @@ test_that("Test get_question_options disabled", {
 							  value = c("val1", "val3"),
 							  order = 1:2,
 							  question_id = c(185L, 185L),
-							  question_subtype = c("radio", "radio"))
+							  question_subtype = c("radio", "radio"),
+							  question_qtext = c("var66", "var66"))
 
 	# Compare data frames element-wise because the rownames are somehow different.
 	# TODO(dan): expect_equal(opts, expected_df)
