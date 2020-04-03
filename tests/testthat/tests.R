@@ -344,6 +344,14 @@ test_that("Test get_question_options disabled", {
 	expect_true(all(opts == expected_df))
 })
 
+test_that("Test get_auth_url_fragment", {
+	api <- "api"
+	secret <- "secret"
+	expect_equal(get_auth_url_fragment(api, secret),
+				 "?api_token=api&api_token_secret=secret")
+
+})
+
 # TODO(dan): Test behavior when a question has both a shortname and varname (SPSS var name).
 #            Right now, I think it will take shortname first.
 # TODO(dan): Test behavior when a sub-question has both a shortname and varname (SPSS var name)

@@ -52,8 +52,6 @@
 #' @importFrom jsonlite fromJSON
 #' @importFrom utils txtProgressBar setTxtProgressBar type.convert
 #' @export
-
-
 pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE,
 				   default_var_name_policy=c("id", "title", "title_plus_id"),
 				   mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE,
@@ -64,20 +62,10 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	options(stringsAsFactors=FALSE)
 	if(small & mergecampaign==FALSE) warning('\nThe "small" parameter should be false when "mergecampaign" is false. This parameter was ignored.')
 	# Set hard-coded URL parameters
-	token <- paste0('?api_token=', api, '&api_token_secret=', secret) # Must be in the first trailing URL position
-
-	if (locale == "US") {
-		url <- "https://restapi.surveygizmo.com/v4/survey/"
-	} else if (locale == "EU") {
-		url <- "https://restapi.surveygizmo.eu/v4/survey/"
-	} else if (locale == "CA") {
-		url <- "https://restapica.surveygizmo.com/v4/survey/"
-	} else {
-		stop("Locale not known. Please use one of US, EU or CA")
-	}
+	token <- get_auth_url_fragment(api, secret)
+	url <- get_survey_gizmo_url(locale)
 
 	response <- "/surveyresponse/"
-	question <- "/surveyquestion/"
 	pages1   <- "&page="
 	results  <- "&resultsperpage=100"
 
@@ -92,7 +80,6 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 
 	lc_base  <- paste0(url, surveyid, response, token, filt)
 	lc_furl  <- paste0(url, surveyid, response, token, results, filt, pages1)
-	lc_qurl  <- paste0(url, surveyid, question, token)
 
 	message("\n  Retrieving survey summary data:")
 	progb <- txtProgressBar(min = 0, max = 4, style = 3)
@@ -112,7 +99,8 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	# Retrieve the question list from the "/surveyquestion/" call
 	setTxtProgressBar(progb, 3)
 	# get id and qtext of questions
-	lc_qs <- get_questions(lc_qurl, default_var_name_policy)[,c('id', 'qtext')]
+	lc_qs <- get_questions(surveyid, api, secret,
+						   default_var_name_policy)[,c('id', 'qtext')]
 	setTxtProgressBar(progb, 4)
 	close(progb)
 
@@ -225,6 +213,27 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	return(set)
 }
 
+#' Return URL based on locale.
+get_survey_gizmo_url <- function(locale) {
+	if (locale == "US") {
+		url <- "https://restapi.surveygizmo.com/v4/survey/"
+	} else if (locale == "EU") {
+		url <- "https://restapi.surveygizmo.eu/v4/survey/"
+	} else if (locale == "CA") {
+		url <- "https://restapica.surveygizmo.com/v4/survey/"
+	} else {
+		stop("Locale not known. Please use one of US, EU or CA")
+	}
+	url
+}
+
+#' Get the URL fragment for auth.
+#'
+#' Must be in the first trailing URL position
+get_auth_url_fragment <- function(api, secret) {
+	paste0('?api_token=', api, '&api_token_secret=', secret)
+}
+
 #' Fetch the question information, and make up variable names in the qtext column.
 #'
 #' qtext (question name) is whichever is non-NA from shortname, sub_varname,
@@ -236,7 +245,15 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 #' @param default_var_name_policy  See pullsg
 #'
 #' @export
-get_questions <- function(lc_qurl, default_var_name_policy) {
+get_questions <- function(surveyid, api, secret,
+						  default_var_name_policy=c("id", "title", "title_plus_id"),
+						  locale="US") {
+	default_var_name_policy <- match.arg(default_var_name_policy)
+	lc_qurl  <- paste0(get_survey_gizmo_url(locale),
+					   surveyid,
+					   "/surveyquestion/",
+					   get_auth_url_fragment(api, secret))
+
 	# Retrieve the question list from the "/surveyquestion/" call
 	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
 
