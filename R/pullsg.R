@@ -266,6 +266,7 @@ get_questions <- function(surveyid, api, secret,
 	# Retrieve the question list from the "/surveyquestion/" call
 	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
 
+	# TODO(dan): Unit test from here down (after json fetched)
 	lc_qs   <- as.data.frame(lc_qs$data)
 
 	if (default_var_name_policy == "id") {
@@ -287,10 +288,16 @@ get_questions <- function(surveyid, api, secret,
 		lc_qs$qtext <- trimws(lc_qs$qtext)
 	}
 
+	# Assert lc_qs structure is plain after qtext:
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
+
 	sub_ques <- get_sub_questions(lc_qs)
 	lc_qs <- merge(lc_qs, sub_ques[,c('sub_question_id', 'sub_varname')],
 				   by.x="id", by.y="sub_question_id",
 				   all.x=TRUE)
+
+	# Assert lc_qs structure is plain after sub-questions
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
 
 	# shortname, then sub_varname, then qtext
 	# TODO(dan): Use varname
@@ -299,6 +306,9 @@ get_questions <- function(surveyid, api, secret,
 		!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
 		lc_qs$shortname,
 		ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname, lc_qs$qtext))
+
+	# Assert lc_qs structure is plain after everything
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
 
 	# Drop instructional messages.
 	lc_qs[lc_qs$`_type` !="SurveyDecorative",]
@@ -330,10 +340,9 @@ get_sub_questions <- function(lc_qs) {
 			varname=df$varname)),
 		row.names = FALSE)
 	colnames(df2) <- c('parent_id', 'sub_question_id', 'sub_varname')
+
 	# Make this a simple data frame, with no lists, no named columns
-	# But, it makes all the columns of type "chr", so that's not great.
-	#df2 <- sapply(df2, function(col) unlist(unname(col)))
-	df2
+	as.data.frame(lapply(df2, function(col) unlist(unname(col))))
 }
 
 #' Get all the options for all questions with a list of options (e.g., radio, table, checkbox).
@@ -449,7 +458,9 @@ get_question_varnames <- function(survey_questions) {
 		varname_df$question_id <- df[idx,c('id')]
 		varname_df$question_subtype <- df[idx,c('_subtype')]
 		# the 'qtext' column is a list with 1 element.
-		varname_df$question_qtext <- df[idx,c('qtext')][[1]]
+		the_qtext <- df[idx,c('qtext')]
+		stopifnot(is.list(the_qtext) && length(the_qtext) == 1)
+		varname_df$question_qtext <- the_qtext[[1]]
 
 		result <- rbind(result, varname_df)
 	}
@@ -522,7 +533,6 @@ apply_option_order <- function(survey_responses, survey_questions) {
 	question_qtexts <- unique(survey_questions$qtext)
 	for (idx in 1:length(opt_cols)) {
 		colname <- opt_cols[idx]
-		message(paste("Re-level", colname))
 		# Use the "value" as the levels, in order
 		the_levels <- survey_options[survey_options$qtext==colname,]$value
 		# the column that had options must be in the survey questions
@@ -531,13 +541,14 @@ apply_option_order <- function(survey_responses, survey_questions) {
 		# or that column is a "table", since maybe the option names weren't given
 		# in the table shortname, but in the sub-question varname spec.
 		if (colname %in% resp_cols) {
+			message(paste("Re-level", colname))
 			# relevel.  accept "" as an extra value (that turns into NA).
 			survey_responses[,colname] <- apply_order_to_vector(
 				survey_responses[,colname], the_levels, colname, extra_levels="")
 		} else {
-			# TODO(dan): Make this not happen?
+			# TODO(dan): Should we make this not happen?
 			# Something might be wrong here.
-			message(paste0("'", colname, "' not in survey response columns"))
+			# message(paste0("'", colname, "' not in survey response columns"))
 		}
 	}
 	survey_responses

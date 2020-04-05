@@ -42,49 +42,13 @@ test_that("Test get_sub_questions", {
 		class = "data.frame"
 	)
 	subq <- get_sub_questions(test_qs1)
-
-	# TODO(dan): I might rather have a plain data frame than this one
-	# with lists that have named elements.
-	expect_equal(subq,
-				 structure(
-				 	list(
-				 		parent_id = list(
-				 			`0` = 211L,
-				 			AAA = 211L,
-				 			`340` = 333L,
-				 			`341` = 333L,
-				 			`342` = 333L,
-				 			`359` = 333L,
-				 			`346` = 345L,
-				 			`353` = 345L,
-				 			`350` = 345L
-				 		),
-				 		sub_question_id = list(
-				 			`0` = 329L,
-				 			AAA = 215L,
-				 			`340` = 340L,
-				 			`341` = 341L,
-				 			`342` = 342L,
-				 			`359` = 359L,
-				 			`346` = 346L,
-				 			`353` = 353L,
-				 			`350` = 350L
-				 		),
-				 		sub_varname = list(
-				 			`0` = "nest.aa",
-				 			AAA = "nest.bb",
-				 			`340` = "kk",
-				 			`341` = "ll",
-				 			`342` = "mm",
-				 			`359` = "nn",
-				 			`346` = "nest2.aaa",
-				 			`353` = "nest2.bbb",
-				 			`350` = "nest2.ccc"
-				 		)
-				 	),
-				 	class = "data.frame",
-				 	row.names = c(NA,-9L)
-				 ))
+	expect_equal(
+		subq,
+		data.frame(parent_id=c(211, 211, 333, 333, 333, 333, 345, 345, 345),
+				   sub_question_id = c(329, 215, 340, 341, 342, 359, 346, 353, 350),
+				   sub_varname = c("nest.aa", "nest.bb",
+				   				"kk", "ll", "mm", "nn",
+				   				"nest2.aaa", "nest2.bbb", "nest2.ccc")))
 })
 
 test_that("Test get_question_options", {
