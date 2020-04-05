@@ -1,8 +1,13 @@
 Package: Rsurveygizmo
 Type: Package
 Title: Download Survey Data from Survey Gizmo
-Version: 0.1.0
-Author: Derek Darves
+Version: 0.2
+Authors@R: 
+  c(
+  person("Derek", "Darves", email="darves@gmail.com", role=c("aut", "cre")),
+  person("btlindert", role=c("aut")),
+  person("Dan", "Frankowski", role=c("aut"))
+  )
 URL: https://github.com/DerekYves/rsurveygizmo
 Maintainer: Derek Darves <darves@gmail.com>
 Description: Pulls response and campaign data from Survey Gizmo using your
