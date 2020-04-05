@@ -214,6 +214,8 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 }
 
 #' Return URL based on locale.
+#'
+#' @param locale  Locale
 get_survey_gizmo_url <- function(locale) {
 	if (locale == "US") {
 		url <- "https://restapi.surveygizmo.com/v4/survey/"
@@ -229,6 +231,9 @@ get_survey_gizmo_url <- function(locale) {
 
 #' Get the URL fragment for auth.
 #'
+#' @param api  API token
+#' @param secret  API token secret
+#'
 #' Must be in the first trailing URL position
 get_auth_url_fragment <- function(api, secret) {
 	paste0('?api_token=', api, '&api_token_secret=', secret)
@@ -241,8 +246,11 @@ get_auth_url_fragment <- function(api, secret) {
 #'
 #' Returns a data frame with all columns.
 #'
-#' @param lc_qurl  URL whence to fetch question json
-#' @param default_var_name_policy  See pullsg
+#' @param surveyid  Survey id
+#' @param api  API token
+#' @param secret  API token secret
+#' @param default_var_name_policy How to make a variable name.
+#' @param locale  Locale to use for SurveyGizmo API.
 #'
 #' @export
 get_questions <- function(surveyid, api, secret,
@@ -284,6 +292,7 @@ get_questions <- function(surveyid, api, secret,
 				   all.x=TRUE)
 
 	# shortname, then sub_varname, then qtext
+	# TODO(dan): Use varname
 	# TODO(dan): Any other names we can use for sub vars?
 	lc_qs$qtext <- ifelse(
 		!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
@@ -292,6 +301,8 @@ get_questions <- function(surveyid, api, secret,
 
 	# Drop instructional messages.
 	lc_qs[lc_qs$`_type` !="SurveyDecorative",]
+
+	# TODO(dan): stop if there are duplicate qtext
 }
 
 #' Return a data frame with parent_id, sub_question_id, and sub_varname
@@ -324,18 +335,19 @@ get_sub_questions <- function(lc_qs) {
 	df2
 }
 
-#' Get all the options for all questions with options (e.g., radio, table, checkbox).
+#' Get all the options for all questions with a list of options (e.g., radio, table, checkbox).
 #'
-#' Removes disabled options (question_df$options$properties$disabled FALSE).
+#' Removes disabled options (survey_questions$options$properties$disabled FALSE).
 #'
 #' Return a data frame with option_id, option_type, title, title_language, value, order,
 #' question_id, question_type, question_subtype, question_qtext.
 #'
-#' @param question_df  Return value of get_questions
+#' @param survey_questions  Return value of get_questions
 #'
 #' @export
-get_question_options <- function(question_df) {
-	df <- question_df[,c('id', '_type', '_subtype', 'options', 'properties', 'qtext')]
+get_question_options <- function(survey_questions) {
+	df <- survey_questions[,c('id', '_type', '_subtype',
+							  'options', 'properties', 'qtext')]
 	# get only rows with 'options' != list()
 	df$options <- replace(
 		df$options,
@@ -383,6 +395,55 @@ get_question_options <- function(question_df) {
 		the_options$question_qtext <- df[idx,c('qtext')]
 
 		result <- rbind(result, the_options)
+	}
+	result
+}
+
+#' Get all the varnames for all questions with a list of varnames (e.g., table, checkbox).
+#'
+#' Does not deal with disabled options (survey_questions$options$properties$disabled FALSE).
+#'
+#' Return a data frame with var_id, varname, question_id, question_type,
+#' question_subtype, question_qtext.
+#'
+#' @param survey_questions  Return value of get_questions
+#'
+#' @export
+get_question_varnames <- function(survey_questions) {
+	df <- survey_questions[,c('id', '_type', '_subtype',
+							  'varname', 'properties', 'qtext')]
+	# get only rows with 'varname' != list()
+	df$varname <- replace(
+		df$varname,
+		sapply(df$varname,
+			   function(x) { is.null(x) | length(x) == 0 | !is.list(x) }), NA)
+	df <- df[!is.na(df$varname),]
+	# Expect only SurveyQuestion:
+	stopifnot(unique(df$`_type`) == c('SurveyQuestion'))
+	# Expect only table and checkbox, radio widgets don't have a list of varname
+	stopifnot(all((df$`_subtype`) %in% c("table", "checkbox")))
+	# TODO(dan): We expect to not have to deal with disabled options!
+	stopifnot(all(df$properties$disabled == FALSE))
+
+	# not dealing with properties right now, so let's assume they're not set
+	stopifnot(sum(df$properties$hidden)==0)
+	stopifnot(sum(df$properties$option_sort)==0)
+
+	result <- data.frame()
+	for (idx in 1:nrow(df)) {
+		# the 'varname' column of df is a list with 1 element.  Unlist it.
+		the_varnames <- df[idx,c('varname')][[1]]
+		varname_df <- data.frame(
+			# There are varnames like "10662-other", so it's not an int
+			#var_id = as.integer(names(the_varnames)),
+			var_id = names(the_varnames),
+			varname = unname(unlist(the_varnames)))
+
+		varname_df$question_id <- df[idx,c('id')]
+		varname_df$question_subtype <- df[idx,c('_subtype')]
+		varname_df$question_qtext <- df[idx,c('qtext')]
+
+		result <- rbind(result, varname_df)
 	}
 	result
 }

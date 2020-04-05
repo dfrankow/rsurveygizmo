@@ -2,6 +2,7 @@
 
 export(apply_option_order)
 export(get_question_options)
+export(get_question_varnames)
 export(get_questions)
 export(pullsg)
 export(pullsg_campaign)

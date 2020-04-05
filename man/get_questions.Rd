@@ -4,12 +4,24 @@
 \alias{get_questions}
 \title{Fetch the question information, and make up variable names in the qtext column.}
 \usage{
-get_questions(lc_qurl, default_var_name_policy)
+get_questions(
+  surveyid,
+  api,
+  secret,
+  default_var_name_policy = c("id", "title", "title_plus_id"),
+  locale = "US"
+)
 }
 \arguments{
-\item{lc_qurl}{URL whence to fetch question json}
+\item{surveyid}{Survey id}
 
-\item{default_var_name_policy}{See pullsg}
+\item{api}{API token}
+
+\item{secret}{API token secret}
+
+\item{default_var_name_policy}{How to make a variable name.}
+
+\item{locale}{Locale to use for SurveyGizmo API.}
 }
 \description{
 qtext (question name) is whichever is non-NA from shortname, sub_varname,

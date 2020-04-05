@@ -2,15 +2,15 @@
 % Please edit documentation in R/pullsg.R
 \name{get_question_options}
 \alias{get_question_options}
-\title{Get all the options for all questions with options (e.g., radio, table, checkbox).}
+\title{Get all the options for all questions with a list of options (e.g., radio, table, checkbox).}
 \usage{
-get_question_options(question_df)
+get_question_options(survey_questions)
 }
 \arguments{
-\item{question_df}{Return value of get_questions}
+\item{survey_questions}{Return value of get_questions}
 }
 \description{
-Removes disabled options (question_df$options$properties$disabled FALSE).
+Removes disabled options (survey_questions$options$properties$disabled FALSE).
 }
 \details{
 Return a data frame with option_id, option_type, title, title_language, value, order,

@@ -1,9 +1,7 @@
-#library("Rsurveygizmo")
-
-context("Sub-questions")
+# context("Sub-questions")
 
 test_that("Test get_sub_questions", {
-	test_qs <- structure(
+	test_qs1 <- structure(
 		list(
 			id = c(52L, 185L, 211L, 333L, 340L, 345L, 346L),
 			sub_question_skus = list(
@@ -43,7 +41,7 @@ test_that("Test get_sub_questions", {
 		row.names = c(1L, 12L, 14L, 25L, 26L, 30L, 31L),
 		class = "data.frame"
 	)
-	subq <- get_sub_questions(test_qs)
+	subq <- get_sub_questions(test_qs1)
 
 	# TODO(dan): I might rather have a plain data frame than this one
 	# with lists that have named elements.
@@ -90,7 +88,7 @@ test_that("Test get_sub_questions", {
 })
 
 test_that("Test get_question_options", {
-	test_qs <-
+	test_qs2 <-
 		structure(
 			list(
 				id = c(52L, 185L, 211L),
@@ -227,7 +225,7 @@ test_that("Test get_question_options", {
 				)
 			),
 			row.names = c(1L, 12L, 14L), class = "data.frame")
-	opts <- get_question_options(test_qs)
+	opts <- get_question_options(test_qs2)
 	# note: blue3 is disabled, so it won't be there
 	expected_df <- data.frame(
 		option_id = c(10348L, 10357L, 10417L,
@@ -253,6 +251,171 @@ test_that("Test get_question_options", {
 	# by hand!
 	# TODO(dan): expect_equal(opts, expected_df)
 	expect_true(all(opts == expected_df))
+})
+
+
+test_that("Test get_question_varnames", {
+	test_qs3 <- structure(
+		list(
+			id = c(211L, 330L),
+			`_type` = c("SurveyQuestion", "SurveyQuestion"),
+			`_subtype` = c("table", "checkbox"),
+			title = structure(
+				list(
+					English = c(
+						"How would you rate..?",
+						"Which of these..?"
+					)
+				),
+				row.names = c(NA,-2L),
+				class = "data.frame"
+			),
+			shortname = c("howw",
+						  "whichh"),
+			varname = list(
+				list(
+					`329` = "howw.q1",
+					`355` = "howw.q2"
+				),
+				list(
+					`10654` = "whichh.a1",
+					`10662` = "whichh.writein1",
+					# NOTE(dan): YES, there are checkbox questions with a "-other"!
+					`10662-other` = "whichh.writein2"
+				)
+			),
+			description = list(list(), list()),
+			has_showhide_deps = c(FALSE, FALSE),
+			comment = c(FALSE, FALSE),
+			properties = structure(
+				list(
+					hidden = c(FALSE, FALSE),
+					map_key = c("table-radio", "checkbox"),
+					show_title = c(FALSE, FALSE),
+					question_description_above = c(FALSE, FALSE),
+					`soft-required` = c(FALSE, FALSE),
+					required = c(TRUE, TRUE),
+					disabled = c(FALSE, FALSE),
+					option_sort = c(FALSE, FALSE),
+					question_description = structure(
+						list(English = c("", "")),
+						row.names = c(NA,-2L),
+						class = "data.frame"
+					),
+					piped_from = c(NA_character_, NA_character_),
+					subtype = c(NA_character_, NA_character_)
+				),
+				row.names = c(NA,-2L),
+				class = "data.frame"
+			),
+			options = list(
+				structure(
+					list(
+						id = 10417:10421,
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"Strongly approve",
+									"Somewhat approve",
+									"Don't know",
+									"Somewhat disapprove",
+									"Strongly disapprove"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 5L)
+						),
+						value = c(
+							"Strongly approve",
+							"Somewhat approve",
+							"Don't know",
+							"Somewhat disapprove",
+							"Strongly disapprove"
+						),
+						properties = structure(
+							list(disabled = c(FALSE, FALSE, FALSE, FALSE, FALSE)),
+							class = "data.frame",
+							row.names = c(NA, 5L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 5L)
+				),
+				structure(
+					list(
+						id = c(
+							10654L,
+							10662L
+						),
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"A1",
+									"Other - Write In"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 14L)
+						),
+						value = c(
+							"vA1",
+							"Other - Write In"
+						),
+						properties = structure(
+							list(
+								disabled = c(
+									FALSE,
+									FALSE
+								),
+								piping_exclude = c(NA, "false")
+							),
+							class = "data.frame",
+							row.names = c(NA, 2L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 2L)
+				)
+			),
+			sub_question_skus = list(
+				list(
+					`0` = 329L,
+					`1` = 355L
+				),
+				NULL
+			),
+			qtext = list("howw", "whichh"),
+			sub_varname = list(NA, NA)
+		),
+		row.names = c(NA,-2L),
+		class = "data.frame"
+	)
+	vns <- get_question_varnames(test_qs3)
+	expected_df <- data.frame(
+		var_id = c(329, 355, 10654, 10662, "10662-other"),
+		varname = c("howw.q1", "howw.q2",
+					"whichh.a1", "whichh.writein1", "whichh.writein2"),
+		question_id = c(211L, 211L, 330L, 330L, 330L),
+		question_subtype = c("table", "table", "checkbox", "checkbox", "checkbox"),
+		question_qtext = c("howw", "howw", "whichh", "whichh", "whichh")
+	)
+
+	# Compare data frames element-wise because question_subtype, question_qtext
+	# are factors in opts, but only during devtools "Check", not when I run
+	# by hand!
+	# TODO(dan): expect_equal(vns, expected_df)
+	expect_true(all(vns == expected_df))
 })
 
 
