@@ -354,7 +354,7 @@ test_that("Test get_question_varnames", {
 				),
 				NULL
 			),
-			qtext = list("howw", "whichh"),
+			qtext = c("howw", "whichh"),
 			sub_varname = list(NA, NA)
 		),
 		row.names = c(NA,-2L),

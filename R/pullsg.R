@@ -457,10 +457,10 @@ get_question_varnames <- function(survey_questions) {
 
 		varname_df$question_id <- df[idx,c('id')]
 		varname_df$question_subtype <- df[idx,c('_subtype')]
-		# the 'qtext' column is a list with 1 element.
-		the_qtext <- df[idx,c('qtext')]
-		stopifnot(is.list(the_qtext) && length(the_qtext) == 1)
-		varname_df$question_qtext <- the_qtext[[1]]
+		varname_df$question_qtext <- df[idx,c('qtext')]
+
+		# Check qtext is a vector, not a list.  I had trouble with this at one point
+		stopifnot(!is.list(df[idx,c('qtext')]))
 
 		result <- rbind(result, varname_df)
 	}
