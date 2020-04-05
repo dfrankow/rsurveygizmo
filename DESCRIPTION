@@ -12,5 +12,6 @@ Imports:
     jsonlite
 LazyData: TRUE
 RoxygenNote: 7.1.0
+Encoding: UTF-8
 Suggests: 
     testthat
