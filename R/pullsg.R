@@ -59,6 +59,7 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 				   pages=NULL) {
 	default_var_name_policy <- match.arg(default_var_name_policy)
 
+	# NOTE(dan): This option is switched only for the function, not globally.
 	options(stringsAsFactors=FALSE)
 	if(small & mergecampaign==FALSE) warning('\nThe "small" parameter should be false when "mergecampaign" is false. This parameter was ignored.')
 	# Set hard-coded URL parameters
@@ -346,6 +347,9 @@ get_sub_questions <- function(lc_qs) {
 #'
 #' @export
 get_question_options <- function(survey_questions) {
+	# NOTE(dan): This option is switched only for the function, not globally.
+	options(stringsAsFactors=FALSE)
+
 	df <- survey_questions[,c('id', '_type', '_subtype',
 							  'options', 'properties', 'qtext')]
 	# get only rows with 'options' != list()
@@ -410,6 +414,9 @@ get_question_options <- function(survey_questions) {
 #'
 #' @export
 get_question_varnames <- function(survey_questions) {
+	# NOTE(dan): This option is switched only for the function, not globally.
+	options(stringsAsFactors=FALSE)
+
 	df <- survey_questions[,c('id', '_type', '_subtype',
 							  'varname', 'properties', 'qtext')]
 	# get only rows with 'varname' != list()
@@ -441,7 +448,8 @@ get_question_varnames <- function(survey_questions) {
 
 		varname_df$question_id <- df[idx,c('id')]
 		varname_df$question_subtype <- df[idx,c('_subtype')]
-		varname_df$question_qtext <- df[idx,c('qtext')]
+		# the 'qtext' column is a list with 1 element.
+		varname_df$question_qtext <- df[idx,c('qtext')][[1]]
 
 		result <- rbind(result, varname_df)
 	}

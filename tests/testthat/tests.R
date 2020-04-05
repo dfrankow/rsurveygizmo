@@ -245,12 +245,7 @@ test_that("Test get_question_options", {
 		question_qtext = c("var33", "var33", "var44", "var44",
 						   "var44", "var44", "var44")
 	)
-
-	# Compare data frames element-wise because title, title_language, and value
-	# are factors in opts, but only during devtools "Check", not when I run
-	# by hand!
-	# TODO(dan): expect_equal(opts, expected_df)
-	expect_true(all(opts == expected_df))
+	expect_equal(opts, expected_df)
 })
 
 
@@ -410,12 +405,7 @@ test_that("Test get_question_varnames", {
 		question_subtype = c("table", "table", "checkbox", "checkbox", "checkbox"),
 		question_qtext = c("howw", "howw", "whichh", "whichh", "whichh")
 	)
-
-	# Compare data frames element-wise because question_subtype, question_qtext
-	# are factors in opts, but only during devtools "Check", not when I run
-	# by hand!
-	# TODO(dan): expect_equal(vns, expected_df)
-	expect_true(all(vns == expected_df))
+	expect_equal(vns, expected_df)
 })
 
 
