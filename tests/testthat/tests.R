@@ -490,11 +490,11 @@ test_that("Test get_question_options disabled", {
 							  question_subtype = c("radio", "radio"),
 							  question_qtext = c("var66", "var66"))
 
-	# Compare data frames element-wise because the rownames are somehow different.
-	# TODO(dan): expect_equal(opts, expected_df)
+	# Remove goofy row names for test checking.
+	# This did not work: rownames(expected_df) <- c("1", "3")
 	# TODO(dan): Make default, plain rownames.
-	# rownames(expected_df) <- c("1", "3")
-	expect_true(all(opts == expected_df))
+	rownames(opts) <- c()
+	expect_equal(opts, expected_df)
 })
 
 test_that("Test get_auth_url_fragment", {
