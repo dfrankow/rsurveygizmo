@@ -300,6 +300,7 @@ get_questions <- function(surveyid, api, secret,
 	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
 
 	# unlist everything, and set complicated varnames (empty or multiple) to NA
+	# TODO(dan): unit test that simple_varname overrides shortname
 	# TODO(dan): Use varname for other types, like checkbox
 	simple_varname <- sapply(
 		lc_qs$varname,
