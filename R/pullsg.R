@@ -299,13 +299,23 @@ get_questions <- function(surveyid, api, secret,
 	# Assert lc_qs structure is plain after sub-questions
 	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
 
-	# shortname, then sub_varname, then qtext
-	# TODO(dan): Use varname
+	# unlist everything, and set complicated varnames (empty or multiple) to NA
+	# TODO(dan): Use varname for other types, like checkbox
+	simple_varname <- sapply(
+		lc_qs$varname,
+		function(x) { if(!is.list(x)) x[[1]] else NA })
+	stopifnot(!is.list(simple_varname), is.vector(simple_varname))
+
+	# varname (if simple), shortname, then sub_varname, then qtext
 	# TODO(dan): Any other names we can use for sub vars?
 	lc_qs$qtext <- ifelse(
-		!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
-		lc_qs$shortname,
-		ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname, lc_qs$qtext))
+		!is.na(simple_varname),
+		simple_varname,
+		ifelse(
+			!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
+			lc_qs$shortname,
+			ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname,
+				   lc_qs$qtext)))
 
 	# Assert lc_qs structure is plain after everything
 	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
