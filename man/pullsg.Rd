@@ -4,10 +4,22 @@
 \alias{pullsg}
 \title{Download survey response data from Survey Gizmo, storing an R dataframe.}
 \usage{
-pullsg(surveyid, api, secret, locale = "US", completes_only = TRUE,
-  verbose = TRUE, var_name_append = TRUE, mergecampaign = FALSE,
-  delete_sys_vars = FALSE, keep_geo_vars = TRUE, clean = FALSE,
-  reset_row_names = TRUE, small = FALSE)
+pullsg(
+  surveyid,
+  api,
+  secret,
+  locale = "US",
+  completes_only = TRUE,
+  verbose = TRUE,
+  default_var_name_policy = c("id", "title", "title_plus_id"),
+  mergecampaign = FALSE,
+  delete_sys_vars = FALSE,
+  keep_geo_vars = TRUE,
+  clean = FALSE,
+  reset_row_names = TRUE,
+  small = FALSE,
+  pages = NULL
+)
 }
 \arguments{
 \item{surveyid}{The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"}
@@ -24,7 +36,12 @@ are deleted (see \href{https://apihelp.surveygizmo.com/help/article/link/surveyr
 
 \item{verbose}{When true (the default), download progress is printed to standard output.}
 
-\item{var_name_append}{When true (the default), appends the stub "_ID[question_numer] to questions \emph{without} an alias to avoid variable name conflicts.}
+\item{default_var_name_policy}{Variable name for those without an alias.
+"id" uses only variable names,
+"title" uses some of the question title,
+"title_plus_id" uses some of the title and
+appends the stub "_ID[question_numer] to questions \emph{without} an alias
+to avoid variable name conflicts.}
 
 \item{mergecampaign}{When true, contact emails are downloaded from the SG "contact" object and merged with the survey responses. Note: this parameter should \emph{only} be used with survey projects that have an active email campaign.}
 
@@ -57,6 +74,8 @@ the geographic variables to:
 \item{reset_row_names}{When true (the default), resets row names to 1, 2,..N in the returned dataframe}
 
 \item{small}{Only merge email address when mergecampaign is true.}
+
+\item{pages}{Fetch these pages of survey responses (given by a sequence).  If NULL, fetch them all.}
 }
 \description{
 This function downloads a survey's response data from Survey Gizmo (SG), saving
@@ -64,4 +83,5 @@ the returned data as an R \code{\link{data.frame}}. Because SG limits the size o
 it calculates the number of pulls needed to download the entire response set and binds the returned frames.
 To ensure that variable names are interpretable in the returned data frame, it is strongly recommended
 that users first assign question \href{https://help.surveygizmo.com/help/article/link/using-question-aliases}{aliases} to each question prior to utilizing this function.
+For sub-questions (e.g., a radio button grid), assign SPSS variable names.
 }

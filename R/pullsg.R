@@ -5,6 +5,7 @@
 #' it calculates the number of pulls needed to download the entire response set and binds the returned frames.
 #' To ensure that variable names are interpretable in the returned data frame, it is strongly recommended
 #' that users first assign question \href{https://help.surveygizmo.com/help/article/link/using-question-aliases}{aliases} to each question prior to utilizing this function.
+#' For sub-questions (e.g., a radio button grid), assign SPSS variable names.
 #'
 #' @param surveyid The survey's unique SG ID number (in V4 of the API, the portion of the \href{https://apihelp.surveygizmo.com/help/article/link/surveyresponse-sub-object}{surveyresponse} call URL which follows "id/", e.g.: "...build/id/1234567"
 #' @param api The user's private API key for Survey Gizmo
@@ -34,38 +35,39 @@
 #'   \item \emph{rsp_post}
 #'   }
 #' @param reset_row_names When true (the default), resets row names to 1, 2,..N in the returned dataframe
-#' @param var_name_append When true (the default), appends the stub "_ID[question_numer] to questions \emph{without} an alias to avoid variable name conflicts.
+#' @param default_var_name_policy Variable name for those without an alias.
+#'  "id" uses only variable names,
+#'  "title" uses some of the question title,
+#'  "title_plus_id" uses some of the title and
+#'  appends the stub "_ID[question_numer] to questions \emph{without} an alias
+#'  to avoid variable name conflicts.
 #' @param clean This option performs three transformations to the returned data.frame:
 #' \enumerate{
 #'   \item attempts to coerce vectors to numeric if all values are numbers or "" (uses \code{\link{type.convert}})
 #'   \item sets 'delete_sys_vars' to true
 #'   \item removes other non-survey-question variables returned by the Survey Gizmo API, including: "contactid", "istestdata", "sessionid", "language", "ilinkid", and "sresponsecomment" (as of V4 of the SG API)
 #' }
+#' @param pages  Fetch these pages of survey responses (given by a sequence).  If NULL, fetch them all.
 
 #' @importFrom jsonlite fromJSON
+#' @importFrom utils txtProgressBar setTxtProgressBar type.convert
 #' @export
+pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE,
+				   default_var_name_policy=c("id", "title", "title_plus_id"),
+				   mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE,
+				   clean=FALSE, reset_row_names=TRUE, small=FALSE,
+				   pages=NULL) {
+	default_var_name_policy <- match.arg(default_var_name_policy)
 
-
-pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verbose=TRUE, var_name_append=TRUE, mergecampaign=FALSE, delete_sys_vars=FALSE, keep_geo_vars=TRUE, clean=FALSE, reset_row_names=TRUE, small=FALSE) {
-
+	# NOTE(dan): This option is switched only for the function, not globally.
 	options(stringsAsFactors=FALSE)
 	if(small & mergecampaign==FALSE) warning('\nThe "small" parameter should be false when "mergecampaign" is false. This parameter was ignored.')
 	# Set hard-coded URL parameters
-	token <- paste0('?api_token=', api, '&api_token_secret=', secret) # Must be in the first trailing URL position
-
-	if (locale == "US") {
-		url <- "https://restapi.surveygizmo.com/v4/survey/"
-	} else if (locale == "EU") {
-		url <- "https://restapi.surveygizmo.eu/v4/survey/"
-	} else if (locale == "CA") {
-		url <- "https://restapica.surveygizmo.com/v4/survey/"
-	} else {
-		stop("Locale not known. Please use one of US, EU or CA")
-	}
+	token <- get_auth_url_fragment(api, secret)
+	url <- get_survey_gizmo_url(locale)
 
 	response <- "/surveyresponse/"
-	question <- "/surveyquestion/"
-	pages    <- "&page="
+	pages1   <- "&page="
 	results  <- "&resultsperpage=100"
 
 	#Build local parameters
@@ -78,8 +80,7 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	}
 
 	lc_base  <- paste0(url, surveyid, response, token, filt)
-	lc_furl  <- paste0(url, surveyid, response, token, results, filt, pages)
-	lc_qurl  <- paste0(url, surveyid, question, token)
+	lc_furl  <- paste0(url, surveyid, response, token, results, filt, pages1)
 
 	message("\n  Retrieving survey summary data:")
 	progb <- txtProgressBar(min = 0, max = 4, style = 3)
@@ -92,47 +93,29 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 
 	# Calculate page number (starting with 1) based on 100 responses per call
 	lc_respnum  <- ceiling(lc_resp_cnt/100)
-
-	# Retrieve the question list from the "/surveyquestion/" call
-	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
-	setTxtProgressBar(progb, 3)
-
-	lc_qs   <- as.data.frame(lc_qs$data)
-
-	# Extract question text for questions without a defined SG alias, stripping
-	# html tags, punctuation, and spaces, keeping the first 35 characters and
-	# appending the question id.
-	lc_qs$qtext <- gsub("<.*?>", "", lc_qs$title$English)
-	lc_qs$qtext <- gsub("[[:punct:]]", "", lc_qs$qtext)
-	setTxtProgressBar(progb, 4)
-
-	if(var_name_append) {
-		lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 35),
-						  "_ID", lc_qs$id)
-		lc_qs$qtext <- trimws(lc_qs$qtext)
-	} else {
-		lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 75))
-		lc_qs$qtext <- trimws(lc_qs$qtext)
+	if (is.null(pages)) {
+		pages <- 1:lc_respnum
 	}
 
-	lc_qs$shortname <- ifelse(is.na(lc_qs$shortname) | lc_qs$shortname=="",
-							  lc_qs$qtext, lc_qs$shortname)
+	# Retrieve the question list from the "/surveyquestion/" call
+	setTxtProgressBar(progb, 3)
+	# get id and qtext of questions
+	lc_qs <- get_questions(surveyid, api, secret,
+						   default_var_name_policy)[,c('id', 'qtext')]
+	setTxtProgressBar(progb, 4)
 	close(progb)
 
-	# Drop instructional messages and subset the frame, keeping shortname and id.
-	lc_qs <- lc_qs[lc_qs$`_type` !="SurveyDecorative", c('id', 'shortname')]
-
 	# Retrieve the response data with the "/surveyresponse/" call
-	message(paste0("\n  Retrieving survey response data (", lc_respnum, " pages):"))
-	progb <- txtProgressBar(min = 0, max = lc_respnum, style = 3)
-	for(i in 1:lc_respnum){
-		# message(paste0("Fetch page ", i))
+	message(paste0("\n  Retrieving survey response data (", length(pages), " pages):"))
+	progb <- txtProgressBar(min = pages[1], max = pages[length(pages)]+1, style = 3)
+	for(i in pages){
 		sg_return_url  <- paste0(lc_furl, i)
 		sg_return_data <- fromJSON(txt=sg_return_url)
 		sg_return_data <- as.data.frame(sg_return_data$data)
 		assign(paste0("lc_survey_page", i), sg_return_data)
 		setTxtProgressBar(progb, i)
 	}
+	setTxtProgressBar(progb, i+1)
 	close(progb)
 
 	#Bind the returned frames
@@ -182,9 +165,9 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	lc_names <- lc_names[order(lc_names$index),]
 	rownames(lc_names) <- NULL # reset the row.names attribute
 
-	# Replace variable name with shortname wher available
-	lc_names$id   <- ifelse(is.na(lc_names$shortname),
-							lc_names$id, lc_names$shortname)
+	# Replace variable name with qtext where available
+	lc_names$id   <- ifelse(is.na(lc_names$qtext),
+							lc_names$id, lc_names$qtext)
 
 	# Subset the vector of cleaned names and replace the full_set names
 	lc_names <- lc_names[,'id']
@@ -231,6 +214,353 @@ pullsg <- function(surveyid, api, secret, locale="US", completes_only=TRUE, verb
 	return(set)
 }
 
+#' Return URL based on locale.
+#'
+#' @param locale  Locale
+get_survey_gizmo_url <- function(locale) {
+	if (locale == "US") {
+		url <- "https://restapi.surveygizmo.com/v4/survey/"
+	} else if (locale == "EU") {
+		url <- "https://restapi.surveygizmo.eu/v4/survey/"
+	} else if (locale == "CA") {
+		url <- "https://restapica.surveygizmo.com/v4/survey/"
+	} else {
+		stop("Locale not known. Please use one of US, EU or CA")
+	}
+	url
+}
 
+#' Get the URL fragment for auth.
+#'
+#' @param api  API token
+#' @param secret  API token secret
+#'
+#' Must be in the first trailing URL position
+get_auth_url_fragment <- function(api, secret) {
+	paste0('?api_token=', api, '&api_token_secret=', secret)
+}
 
+#' Fetch the question information, and make up variable names in the qtext column.
+#'
+#' qtext (question name) is whichever is non-NA from shortname, sub_varname,
+#' and the title made up from default_var_name_policy.
+#'
+#' Returns a data frame with all columns.
+#'
+#' @param surveyid  Survey id
+#' @param api  API token
+#' @param secret  API token secret
+#' @param default_var_name_policy How to make a variable name.
+#' @param locale  Locale to use for SurveyGizmo API.
+#'
+#' @export
+get_questions <- function(surveyid, api, secret,
+						  default_var_name_policy=c("id", "title", "title_plus_id"),
+						  locale="US") {
+	default_var_name_policy <- match.arg(default_var_name_policy)
+	lc_qurl  <- paste0(get_survey_gizmo_url(locale),
+					   surveyid,
+					   "/surveyquestion/",
+					   get_auth_url_fragment(api, secret))
 
+	# Retrieve the question list from the "/surveyquestion/" call
+	lc_qs   <- jsonlite::fromJSON(txt=lc_qurl)
+
+	# TODO(dan): Unit test from here down (after json fetched)
+	lc_qs   <- as.data.frame(lc_qs$data)
+
+	if (default_var_name_policy == "id") {
+		lc_qs$qtext <- paste0("var", lc_qs$id)
+	} else {
+		# Extract question text for questions without a defined SG alias, stripping
+		# html tags, punctuation, and spaces, keeping the first 35 characters and
+		# appending the question id.
+		lc_qs$qtext <- gsub("<.*?>", "", lc_qs$title$English)
+		lc_qs$qtext <- gsub("[[:punct:]]", "", lc_qs$qtext)
+
+		if(default_var_name_policy == "title_plus_id") {
+			lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 35),
+								  "_ID", lc_qs$id)
+		} else {
+			stopifnot(default_var_name_policy == "title")
+			lc_qs$qtext <- paste0(substr(gsub("[[:space:]]", ".", lc_qs$qtext), 1, 75))
+		}
+		lc_qs$qtext <- trimws(lc_qs$qtext)
+	}
+
+	# Assert lc_qs structure is plain after qtext:
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
+
+	sub_ques <- get_sub_questions(lc_qs)
+	lc_qs <- merge(lc_qs, sub_ques[,c('sub_question_id', 'sub_varname')],
+				   by.x="id", by.y="sub_question_id",
+				   all.x=TRUE)
+
+	# Assert lc_qs structure is plain after sub-questions
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
+
+	# unlist everything, and set complicated varnames (empty or multiple) to NA
+	# TODO(dan): unit test that simple_varname overrides shortname
+	# TODO(dan): Use varname for other types, like checkbox
+	simple_varname <- sapply(
+		lc_qs$varname,
+		function(x) { if(!is.list(x)) x[[1]] else NA })
+	stopifnot(!is.list(simple_varname), is.vector(simple_varname))
+
+	# varname (if simple), shortname, then sub_varname, then qtext
+	# TODO(dan): Any other names we can use for sub vars?
+	lc_qs$qtext <- ifelse(
+		!is.na(simple_varname),
+		simple_varname,
+		ifelse(
+			!(is.na(lc_qs$shortname) | lc_qs$shortname==""),
+			lc_qs$shortname,
+			ifelse(!is.na(lc_qs$sub_varname), lc_qs$sub_varname,
+				   lc_qs$qtext)))
+
+	# Assert lc_qs structure is plain after everything
+	stopifnot(!is.list(lc_qs$qtext), is.vector(lc_qs$qtext))
+
+	# Drop instructional messages.
+	lc_qs[lc_qs$`_type` !="SurveyDecorative",]
+
+	# TODO(dan): stop if there are duplicate qtext
+}
+
+#' Return a data frame with parent_id, sub_question_id, and sub_varname
+#'
+#' sub_varname comes from from SPSS variable name, if any.
+#'
+#' @param  lc_qs  Return value from get_questions
+get_sub_questions <- function(lc_qs) {
+	df <- lc_qs[,c('id', 'sub_question_skus', 'varname')]
+	# get only rows with 'sub_question_skus' not NULL
+	df$sub_question_skus <- replace(
+		df$sub_question_skus,
+		sapply(df$sub_question_skus, is.null), NA)
+	df <- df[!is.na(df$sub_question_skus),]
+	# make varname NA for rows with 'varname' NULL or list()
+	df$varname <- replace(
+		df$varname,
+		sapply(df$varname, function(x) { is.null(x) | length(x) == 0 }), NA)
+	df2 <- as.data.frame(do.call(
+		rbind,
+		Map(f=cbind,
+			id=df$id,
+			sub_question_id=df$sub_question_skus,
+			varname=df$varname)),
+		row.names = FALSE)
+	colnames(df2) <- c('parent_id', 'sub_question_id', 'sub_varname')
+
+	# Make this a simple data frame, with no lists, no named columns
+	as.data.frame(lapply(df2, function(col) unlist(unname(col))))
+}
+
+#' Get all the options for all questions with a list of options (e.g., radio, table, checkbox).
+#'
+#' Removes disabled options (survey_questions$options$properties$disabled FALSE).
+#'
+#' Return a data frame with option_id, option_type, title, title_language, value, order,
+#' question_id, question_type, question_subtype, question_qtext.
+#'
+#' @param survey_questions  Return value of get_questions
+#'
+#' @export
+get_question_options <- function(survey_questions) {
+	# NOTE(dan): This option is switched only for the function, not globally.
+	options(stringsAsFactors=FALSE)
+
+	df <- survey_questions[,c('id', '_type', '_subtype',
+							  'options', 'properties', 'qtext')]
+	# get only rows with 'options' != list()
+	df$options <- replace(
+		df$options,
+		sapply(df$options, function(x) { is.null(x) | length(x) == 0 }), NA)
+	df <- df[!is.na(df$options),]
+	# Expect only SurveyQuestion:
+	stopifnot(unique(df$`_type`) == c('SurveyQuestion'))
+
+	# not dealing with properties right now, so let's assume they're not set
+	stopifnot(sum(df$properties$hidden)==0)
+	stopifnot(sum(df$properties$option_sort)==0)
+
+	result <- data.frame()
+	for (idx in 1:nrow(df)) {
+		# the 'options' column of df is a list with 1 element.  Unlist it.
+		the_options <- df[idx,c('options')][[1]]
+		# remove row names so they don't collide with each other
+		rownames(the_options) <- c()
+		# throw away disabled options
+		disabled_col <- the_options$properties$disabled
+		if (length(disabled_col) > 0) {
+			the_options <- the_options[!disabled_col,]
+		}
+		if (is.data.frame(the_options$title)) {
+			# this is a data frame with one column, the title
+			# for example, the one column may be "English"
+			# so the column name may be the language?
+			# so this may become more complicated if there are multiple languages?
+			stopifnot(ncol(the_options$title) == 1)
+			# keep the language info
+			the_options$title_language <- colnames(the_options$title)
+			# make it a plain column
+			the_options$title <- the_options$title[[1]]
+		}
+		# just be triple sure and preserve the order instead of
+		# relying on the option id
+		the_options$order <- seq(1,length(the_options$title))
+		the_options <- the_options[
+			,c('id', 'title', 'title_language', 'value', 'order')]
+		# rename column
+		names(the_options)[1] <- 'option_id'
+
+		the_options$question_id <- df[idx,c('id')]
+		the_options$question_subtype <- df[idx,c('_subtype')]
+		the_options$question_qtext <- df[idx,c('qtext')]
+
+		result <- rbind(result, the_options)
+	}
+	result
+}
+
+#' Get all the varnames for all questions with a list of varnames (e.g., table, checkbox).
+#'
+#' Does not deal with disabled options (survey_questions$options$properties$disabled FALSE).
+#'
+#' Return a data frame with var_id, varname, question_id, question_type,
+#' question_subtype, question_qtext.
+#'
+#' @param survey_questions  Return value of get_questions
+#'
+#' @export
+get_question_varnames <- function(survey_questions) {
+	# NOTE(dan): This option is switched only for the function, not globally.
+	options(stringsAsFactors=FALSE)
+
+	df <- survey_questions[,c('id', '_type', '_subtype',
+							  'varname', 'properties', 'qtext')]
+	# get only rows with 'varname' != list()
+	df$varname <- replace(
+		df$varname,
+		sapply(df$varname,
+			   function(x) { is.null(x) | length(x) == 0 | !is.list(x) }), NA)
+	df <- df[!is.na(df$varname),]
+	# Expect only SurveyQuestion:
+	stopifnot(unique(df$`_type`) == c('SurveyQuestion'))
+	# Expect only table and checkbox, radio widgets don't have a list of varname
+	stopifnot(all((df$`_subtype`) %in% c("table", "checkbox")))
+	# TODO(dan): We expect to not have to deal with disabled options!
+	stopifnot(all(df$properties$disabled == FALSE))
+
+	# not dealing with properties right now, so let's assume they're not set
+	stopifnot(sum(df$properties$hidden)==0)
+	stopifnot(sum(df$properties$option_sort)==0)
+
+	result <- data.frame()
+	for (idx in 1:nrow(df)) {
+		# the 'varname' column of df is a list with 1 element.  Unlist it.
+		the_varnames <- df[idx,c('varname')][[1]]
+		varname_df <- data.frame(
+			# There are varnames like "10662-other", so it's not an int
+			#var_id = as.integer(names(the_varnames)),
+			var_id = names(the_varnames),
+			varname = unname(unlist(the_varnames)))
+
+		varname_df$question_id <- df[idx,c('id')]
+		varname_df$question_subtype <- df[idx,c('_subtype')]
+		varname_df$question_qtext <- df[idx,c('qtext')]
+
+		# Check qtext is a vector, not a list.  I had trouble with this at one point
+		stopifnot(!is.list(df[idx,c('qtext')]))
+
+		result <- rbind(result, varname_df)
+	}
+	result
+}
+
+#' Return ordered(vec, levels=levels, labels=labels) after checking.
+#'
+#' @param  vec  Vector to change
+#' @param  levels  Pre-existing values of vec (or a superset)
+#' @param  colname  Column name for an error message.
+#' @param  extra_levels  Allow these in vec without complaining even if they're not in levels
+#'                       They will become NA in the returned result.
+apply_order_to_vector <- function(vec, levels, colname="unknown", extra_levels=NULL) {
+	dups <- dup_elements(levels)
+	if (length(dups)) {
+		stop(paste0("Duplicate values in levels: '", paste(levels, collapse="', '"), "'"))
+	}
+	the_extra_levels <- setdiff(unique(vec), levels)
+
+	# always accept NA, so take it out of extra_levels
+	if (!is.null(extra_levels)) {
+		the_extra_levels <- setdiff(the_extra_levels, extra_levels)
+	}
+	if (length(the_extra_levels) > 0) {
+		stop(paste0("Found extra levels in column '", colname, "': '",
+					paste0(the_extra_levels, collapse="', '"), "'; expected only '",
+					paste0(levels, collapse="', '"), "'."))
+	}
+	ordered(vec, levels=levels)
+}
+
+#' Return elements of vec that have duplicates
+#'
+#' @param vec  Vector in which to detect duplicates
+dup_elements <- function(vec) {
+	ret <- table(vec)
+	ret[ret > 1]
+}
+
+#' Make survey_responses columns into ordered factors based on survey_questions options.
+#'
+#' By default, allows
+#'
+#' @param survey_responses  Return value from pullsg
+#' @param survey_questions  Return value from get_questions
+#'
+#' @return New version of survey_responses, re-leveled
+#'
+#' @export
+apply_option_order <- function(survey_responses, survey_questions) {
+	survey_options <- get_question_options(survey_questions)
+	# add qtext, the name of the question column in survey_responses
+	# TODO(dan): assert that this merge doesn't shrink survey_options
+	survey_options <- merge(survey_options, survey_questions[,c('id', 'qtext')],
+							by.x='question_id', by.y='id')
+	resp_cols <- names(survey_responses)
+
+	# check that qtext doesn't map to two question ids
+	opt_id_qtext <- unique(survey_options[,c('question_id', 'qtext')])
+	opt_qtext <- unique(survey_options[,c('qtext')])
+	if (length(opt_qtext) != nrow(opt_id_qtext)) {
+		foo <- table(opt_id_qtext$qtext)
+		stop(paste0("Some variable names are not unique in the survey questions: ",
+					paste(names(foo[foo>1]), collapse=", ")))
+	}
+
+	# for each option, re-level the column in survey_responses
+	opt_cols <- unique(survey_options$qtext)
+	question_qtexts <- unique(survey_questions$qtext)
+	for (idx in 1:length(opt_cols)) {
+		colname <- opt_cols[idx]
+		# Use the "value" as the levels, in order
+		the_levels <- survey_options[survey_options$qtext==colname,]$value
+		# the column that had options must be in the survey questions
+		stopifnot(colname %in% question_qtexts)
+		# the column that had options should be in the survey responses
+		# or that column is a "table", since maybe the option names weren't given
+		# in the table shortname, but in the sub-question varname spec.
+		if (colname %in% resp_cols) {
+			message(paste("Re-level", colname))
+			# relevel.  accept "" as an extra value (that turns into NA).
+			survey_responses[,colname] <- apply_order_to_vector(
+				survey_responses[,colname], the_levels, colname, extra_levels="")
+		} else {
+			# TODO(dan): Should we make this not happen?
+			# Something might be wrong here.
+			# message(paste0("'", colname, "' not in survey response columns"))
+		}
+	}
+	survey_responses
+}

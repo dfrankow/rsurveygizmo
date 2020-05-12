@@ -1,0 +1,476 @@
+# context("Sub-questions")
+
+test_that("Test get_sub_questions", {
+	test_qs1 <- structure(
+		list(
+			id = c(52L, 185L, 211L, 333L, 340L, 345L, 346L),
+			sub_question_skus = list(
+				NULL,
+				NULL,
+				list(
+					`0` = 329L,
+					AAA = 215L
+				),
+				c(340L, 341L, 342L, 359L),
+				NULL,
+				c(346L, 353L, 350L),
+				NULL
+			),
+			varname = list(
+				list(),
+				"flat_name",
+				list(
+					`329` = "nest.aa",
+					`355` = "nest.bb"
+				),
+				list(
+					`340` = "kk",
+					`341` = "ll",
+					`342` = "mm",
+					`359` = "nn"
+				),
+				list(),
+				list(
+					`346` = "nest2.aaa",
+					`353` = "nest2.bbb",
+					`350` = "nest2.ccc"
+				),
+				list()
+			)
+		),
+		row.names = c(1L, 12L, 14L, 25L, 26L, 30L, 31L),
+		class = "data.frame"
+	)
+	subq <- get_sub_questions(test_qs1)
+	expect_equal(
+		subq,
+		data.frame(parent_id=c(211, 211, 333, 333, 333, 333, 345, 345, 345),
+				   sub_question_id = c(329, 215, 340, 341, 342, 359, 346, 353, 350),
+				   sub_varname = c("nest.aa", "nest.bb",
+				   				"kk", "ll", "mm", "nn",
+				   				"nest2.aaa", "nest2.bbb", "nest2.ccc")))
+})
+
+test_that("Test get_question_options", {
+	test_qs2 <-
+		structure(
+			list(
+				id = c(52L, 185L, 211L),
+				`_type` = c("SurveyAction", "SurveyQuestion", "SurveyQuestion"),
+				`_subtype` = c("javascript", "radio", "table"),
+				qtext = c("var22", "var33", "var44"),
+				title = structure(
+					list(
+						English = c(
+							"title1 to ignore",
+							"please select one",
+							"How would you rate?"
+						)
+					),
+					row.names = c(1L, 12L, 14L),
+					class = "data.frame"
+				),
+				shortname = c(NA, "most_important", "pre"),
+				varname = list(
+					list(),
+					"most_important",
+					list(
+						`329` = "pre.word1",
+						`355` = "pre.word2",
+						`215` = "pre.word3"
+					)
+				),
+				description = list(list(), list(), list()),
+				properties = structure(
+					list(
+						hidden = c(FALSE, FALSE, FALSE),
+						disabled = c(FALSE, FALSE, FALSE),
+						option_sort = c(NA, FALSE, FALSE),
+						subtype = c(NA_character_,
+									NA_character_, NA_character_)
+					),
+					row.names = c(1L, 12L, 14L),
+					class = "data.frame"
+				),
+				options = list(
+					structure(
+						list(),
+						.Names = character(0),
+						row.names = integer(0),
+						class = "data.frame"
+					),
+					structure(
+						list(
+							id = c(
+								10348L,
+								10357L,
+								10358L
+							),
+							`_type` = c(
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption"
+							),
+							title = structure(
+								list(
+									English = c(
+										"blue1",
+										"blue2",
+										"blue3"
+									)
+								),
+								class = "data.frame",
+								row.names = c(NA, 3L)
+							),
+							value = c(
+								"vblue1",
+								"vblue2",
+								"vblue3"
+							),
+							properties = structure(
+								list(
+									disabled = c(FALSE, FALSE, TRUE)
+								),
+								class = "data.frame",
+								row.names = c(NA, 3L)
+							)
+						),
+						class = "data.frame",
+						row.names = c(NA, 3L)
+					),
+					structure(
+						list(
+							id = 10417:10421,
+							`_type` = c(
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption",
+								"SurveyOption"
+							),
+							title = structure(
+								list(
+									English = c(
+										"Strongly approve",
+										"Somewhat approve",
+										"Don't know",
+										"Somewhat disapprove",
+										"Strongly disapprove"
+									)
+								),
+								class = "data.frame",
+								row.names = c(NA, 5L)
+							),
+							value = c(
+								"vStrongly approve",
+								"vSomewhat approve",
+								"vDon't know",
+								"vSomewhat disapprove",
+								"vStrongly disapprove"
+							),
+							properties = structure(
+								list(disabled = c(FALSE, FALSE, FALSE, FALSE, FALSE)),
+								class = "data.frame",
+								row.names = c(NA, 5L)
+							)
+						),
+						class = "data.frame",
+						row.names = c(NA, 5L)
+					)
+				),
+				sub_question_skus = list(
+					NULL,
+					NULL,
+					list(
+						`0` = 329L,
+						`1` = 355L,
+						aa = 215L
+					)
+				)
+			),
+			row.names = c(1L, 12L, 14L), class = "data.frame")
+	opts <- get_question_options(test_qs2)
+	# note: blue3 is disabled, so it won't be there
+	expected_df <- data.frame(
+		option_id = c(10348L, 10357L, 10417L,
+					  10418L, 10419L, 10420L, 10421L),
+		title = c("blue1", "blue2", "Strongly approve",
+				  "Somewhat approve", "Don't know",
+				  "Somewhat disapprove", "Strongly disapprove"),
+		title_language = c("English", "English","English",
+						   "English", "English", "English", "English"),
+		value = c("vblue1", "vblue2", "vStrongly approve",
+				  "vSomewhat approve", "vDon't know", "vSomewhat disapprove",
+				  "vStrongly disapprove"),
+		order = c(1L, 2L, 1L, 2L, 3L, 4L, 5L),
+		question_id = c(185L, 185L, 211L, 211L, 211L, 211L, 211L),
+		question_subtype = c("radio", "radio", "table",
+							 "table", "table", "table", "table"),
+		question_qtext = c("var33", "var33", "var44", "var44",
+						   "var44", "var44", "var44")
+	)
+	expect_equal(opts, expected_df)
+})
+
+
+test_that("Test get_question_varnames", {
+	test_qs3 <- structure(
+		list(
+			id = c(211L, 330L),
+			`_type` = c("SurveyQuestion", "SurveyQuestion"),
+			`_subtype` = c("table", "checkbox"),
+			title = structure(
+				list(
+					English = c(
+						"How would you rate..?",
+						"Which of these..?"
+					)
+				),
+				row.names = c(NA,-2L),
+				class = "data.frame"
+			),
+			shortname = c("howw",
+						  "whichh"),
+			varname = list(
+				list(
+					`329` = "howw.q1",
+					`355` = "howw.q2"
+				),
+				list(
+					`10654` = "whichh.a1",
+					`10662` = "whichh.writein1",
+					# NOTE(dan): YES, there are checkbox questions with a "-other"!
+					`10662-other` = "whichh.writein2"
+				)
+			),
+			description = list(list(), list()),
+			has_showhide_deps = c(FALSE, FALSE),
+			comment = c(FALSE, FALSE),
+			properties = structure(
+				list(
+					hidden = c(FALSE, FALSE),
+					map_key = c("table-radio", "checkbox"),
+					show_title = c(FALSE, FALSE),
+					question_description_above = c(FALSE, FALSE),
+					`soft-required` = c(FALSE, FALSE),
+					required = c(TRUE, TRUE),
+					disabled = c(FALSE, FALSE),
+					option_sort = c(FALSE, FALSE),
+					question_description = structure(
+						list(English = c("", "")),
+						row.names = c(NA,-2L),
+						class = "data.frame"
+					),
+					piped_from = c(NA_character_, NA_character_),
+					subtype = c(NA_character_, NA_character_)
+				),
+				row.names = c(NA,-2L),
+				class = "data.frame"
+			),
+			options = list(
+				structure(
+					list(
+						id = 10417:10421,
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"Strongly approve",
+									"Somewhat approve",
+									"Don't know",
+									"Somewhat disapprove",
+									"Strongly disapprove"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 5L)
+						),
+						value = c(
+							"Strongly approve",
+							"Somewhat approve",
+							"Don't know",
+							"Somewhat disapprove",
+							"Strongly disapprove"
+						),
+						properties = structure(
+							list(disabled = c(FALSE, FALSE, FALSE, FALSE, FALSE)),
+							class = "data.frame",
+							row.names = c(NA, 5L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 5L)
+				),
+				structure(
+					list(
+						id = c(
+							10654L,
+							10662L
+						),
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"A1",
+									"Other - Write In"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 14L)
+						),
+						value = c(
+							"vA1",
+							"Other - Write In"
+						),
+						properties = structure(
+							list(
+								disabled = c(
+									FALSE,
+									FALSE
+								),
+								piping_exclude = c(NA, "false")
+							),
+							class = "data.frame",
+							row.names = c(NA, 2L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 2L)
+				)
+			),
+			sub_question_skus = list(
+				list(
+					`0` = 329L,
+					`1` = 355L
+				),
+				NULL
+			),
+			qtext = c("howw", "whichh"),
+			sub_varname = list(NA, NA)
+		),
+		row.names = c(NA,-2L),
+		class = "data.frame"
+	)
+	vns <- get_question_varnames(test_qs3)
+	expected_df <- data.frame(
+		var_id = c(329, 355, 10654, 10662, "10662-other"),
+		varname = c("howw.q1", "howw.q2",
+					"whichh.a1", "whichh.writein1", "whichh.writein2"),
+		question_id = c(211L, 211L, 330L, 330L, 330L),
+		question_subtype = c("table", "table", "checkbox", "checkbox", "checkbox"),
+		question_qtext = c("howw", "howw", "whichh", "whichh", "whichh")
+	)
+	expect_equal(vns, expected_df)
+})
+
+
+test_that("Test get_question_options disabled", {
+	test_qs <-
+		structure(
+			list(
+				id = 185L,
+				qtext = "var66",
+				`_type` = "SurveyQuestion",
+				`_subtype` = "radio",
+				title = structure(
+					list(English = "please select one"),
+					row.names = 12L,
+					class = "data.frame"
+				),
+				shortname = "most_important",
+				varname = list("most_important"),
+				description = list(list()),
+				has_showhide_deps = FALSE,
+				comment = FALSE,
+				properties = structure(
+					list(
+						disabled = FALSE,
+						option_sort = FALSE,
+						subtype = NA_character_
+					),
+					row.names = 3L,
+					class = "data.frame"
+				),
+				options = list(structure(
+					list(
+						id = c(
+							10348L,
+							10358L,
+							10719L
+						),
+						`_type` = c(
+							"SurveyOption",
+							"SurveyOption",
+							"SurveyOption"
+						),
+						title = structure(
+							list(
+								English = c(
+									"val1",
+									"val3",
+									"val3"
+								)
+							),
+							class = "data.frame",
+							row.names = c(NA, 3L)
+						),
+						value = c(
+							"val1",
+							"val3",
+							"val3"
+						),
+						properties = structure(
+							list(
+								disabled = c(FALSE, TRUE, FALSE)
+							),
+							class = "data.frame",
+							row.names = c(NA, 3L)
+						)
+					),
+					class = "data.frame",
+					row.names = c(NA, 3L)
+				)),
+				sub_question_skus = list(							  									 									  																						   								 										 											 													  										   																	NULL)), row.names = 12L, class = "data.frame")
+	opts <- get_question_options(test_qs)
+	expect_equal(nrow(opts), 2)
+	# option 10358 disappeared because it was disabled
+	expect_equal(opts$option_id, c(10348, 10719))
+
+	expected_df <- data.frame(option_id = c(10348L, 10719L),
+							  title = c("val1", "val3"),
+							  title_language = c("English", "English"),
+							  value = c("val1", "val3"),
+							  order = 1:2,
+							  question_id = c(185L, 185L),
+							  question_subtype = c("radio", "radio"),
+							  question_qtext = c("var66", "var66"))
+
+	# Remove goofy row names for test checking.
+	# This did not work: rownames(expected_df) <- c("1", "3")
+	# TODO(dan): Make default, plain rownames.
+	rownames(opts) <- c()
+	expect_equal(opts, expected_df)
+})
+
+test_that("Test get_auth_url_fragment", {
+	api <- "api"
+	secret <- "secret"
+	expect_equal(get_auth_url_fragment(api, secret),
+				 "?api_token=api&api_token_secret=secret")
+
+})
+
+# TODO(dan): Test behavior when a question has both a shortname and varname (SPSS var name).
+#            Right now, I think it will take shortname first.
+# TODO(dan): Test behavior when a sub-question has both a shortname and varname (SPSS var name)
+#            from its parent question.
+#            Right now, I think it will take shortname first.
